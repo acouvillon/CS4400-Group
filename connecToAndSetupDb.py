@@ -116,14 +116,57 @@ cursor = cnx.cursor()
 for name, ddl in TABLES.items():
     try:
         print("Creating table {}: ".format(name), end='')
-        cursor.execute(ddl)
+       cursor.execute(ddl)
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
             print("already exists.")
-        else:
+       else:
             print(err.msg)
     else:
         print("OK")
 
+add_admin = ("INSERT INTO admin_user "
+               "VALUES (%s, %s)")
+add_visitor = ("INSERT INTO visitor "
+                   "VALUES (%s, %s, %s, %s, %s, %s)")
+add_museum = ("INSERT INTO museum "
+                  "VALUES(%s, %s)")
+#---------------------------ADMIN DATA----------------------------------
+data_admin = ('very_cool_guy@hotmail.com', 'imcool')
+# Insert new admin
+cursor.execute(add_admin, data_admin)
+
+#--------------------------VISITOR DATA----------------------------------
+# email, password, credit card num, expiry month, expiry year, security num
+data_visitor = []
+data_visitor.append(('themuseumguy@gmail.com', 'themuseumguy', '1111222233334444', 12, '1999', 666)) 
+for v in range(len(data_visitor)):
+    cursor.execute(add_visitor, data_visitor[v])
+    print("visitor added...")
+    v += 1
+
+#--------------------------MUSEUM DATA-----------------------------------
+# museum name, curator email (optional)
+data_museum = []
+
+#-------------------------CURATOR REQUEST DATA---------------------------
+# email, museum name
+data_curator_request = []
+
+
+#-------------------------REVIEW DATA------------------------------------
+# email, museum name, comment (optional), rating
+data_review = []
+
+#-------------------------TICKET DATA------------------------------------
+# email, museum name, price, purchase_timestamp
+data_ticket = []
+
+#-------------------------EXHIBIT DATA-----------------------------------
+# museum name, exhibit name, year, url
+data_exhibit = []
+
+# Make sure data is committed to the database
+cnx.commit()
 cursor.close()
 cnx.close()
