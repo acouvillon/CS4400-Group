@@ -1,8 +1,17 @@
 import tkinter as tk
 from tkinter import *
+from tkinter import messagebox
+import mysql.connector
 
 LARGE_FONT = ("Verdana", 26, "underline")
 SMALL_FONT = ("Verdana", 10, "italic")
+config = {
+    'user': 'root',
+    'password': 'rootuserpassword',
+    'database': 'bmtrsdb',
+    'raise_on_warnings': True,
+}
+cnx = mysql.connector.connect(**config)
 class BMTRSApp(tk.Tk):
 
     #self is implied -- it's the first parameter
@@ -10,17 +19,19 @@ class BMTRSApp(tk.Tk):
     #keyboard arguments
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
-        login_screen = tk.Frame(self)
+        main_window = tk.Frame(self)
+        self.wm_title("")
+
         #fill fills space allotted
         #expand beyond space allotted
-        login_screen.pack(side="top", fill="both", expand=True)
+        main_window.pack(side="top", fill="both", expand=True)
         #0 - minimum,
-        login_screen.grid_rowconfigure(0, weight=1)
-        login_screen.grid_columnconfigure(0, weight=1)
+        main_window.grid_rowconfigure(0, weight=1)
+        main_window.grid_columnconfigure(0, weight=1)
 
         self.frames ={}
         for F in {LoginPage, RegistrationPage}:
-            login_frame = F(login_screen, self)
+            login_frame = F(main_window, self)
             self.frames[F] = login_frame
             #sticky alignment + stretch - so it aligns everything to all sides of window
             login_frame.grid(row=0, column=0, sticky="nsew")
@@ -30,42 +41,65 @@ class BMTRSApp(tk.Tk):
         frame = self.frames[container]
         frame.tkraise()
 
-#todo
-#Checks database, validates credentials and allows access to specific museum page
-def login(username, pwd):
-    print("login successful")
 
 
 #PAGE 1 - LOGIN PAGE
 class LoginPage(tk.Frame):
 
     def __init__(self, parent, controller):
-            tk.Frame.__init__(self, parent)
-            title = tk.Label(self, text="BMTRS", font=LARGE_FONT)
-            title.pack(pady=10, padx=10)
-            black_line=Frame(self, height=1, width=500, bg="black")
-            black_line.pack()
-            information_entry_frame = tk.Frame(self, borderwidth=5, relief='groove', pady=10)
-            information_entry_frame.pack(anchor='center', pady=20, padx=5)
-            email_label = tk.Label(information_entry_frame, text="Email:", font=SMALL_FONT)
-            email_label.grid(row=0, column=0, sticky='e', pady=5, padx=5)
-            email_entry = tk.Entry(information_entry_frame)
-            email_entry.grid(row=0, column=1, sticky='w', pady=5, padx=5)
-            email_text=StringVar()
-            pwd_label = tk.Label(information_entry_frame, text="Password:", font=SMALL_FONT)
-            pwd_label.grid(row=1, column=0, sticky='e', pady=5, padx=5)
-            # u022 is code for dot so that, the user's password is not visible
-            pwd_entry = tk.Entry(information_entry_frame, show='\u2022')
-            pwd_entry.grid(row=1, column=1, sticky='w', pady=5, padx=5)
-            login_button = tk.Button(self, text="Login", fg='blue',
-                                     command=lambda: login(username_text, pwd_text))
-            register_button = tk.Button(self, borderwidth=0, text="New User? Click here to register",
-                                        font="Verdana 10 underline", fg='blue',
-                                        command=lambda: controller.show_frame(RegistrationPage))
-            login_button.pack(anchor='n', expand=True)
-            black_line=Frame(self, height=1, width=500, bg="black")
-            black_line.pack(anchor='n')
-            register_button.pack(pady=0, anchor='n')
+        tk.Frame.__init__(self, parent)
+        title = tk.Label(self, text="BMTRS", font=LARGE_FONT)
+        title.pack(pady=10, padx=10)
+        black_line=Frame(self, height=1, width=500, bg="black")
+        black_line.pack()
+        information_entry_frame = tk.Frame(self, borderwidth=5, relief='groove', pady=10)
+        information_entry_frame.pack(anchor='center', pady=20, padx=5)
+        email_label = tk.Label(information_entry_frame, text="Email:", font=SMALL_FONT)
+        email_label.grid(row=0, column=0, sticky='e', pady=5, padx=5)
+        email_text = StringVar()
+        email_entry = tk.Entry(information_entry_frame, textvariable=email_text)
+        email_entry.grid(row=0, column=1, sticky='w', pady=5, padx=5)
+        pwd_label = tk.Label(information_entry_frame, text="Password:", font=SMALL_FONT)
+        pwd_label.grid(row=1, column=0, sticky='e', pady=5, padx=5)
+        # u022 is code for dot so that, the user's password is not visible
+        pwd_text = StringVar()
+        pwd_entry = tk.Entry(information_entry_frame, show='\u2022', textvariable=pwd_text)
+        pwd_entry.grid(row=1, column=1, sticky='w', pady=5, padx=5)
+        login_button = tk.Button(self, text="Login", fg='blue',
+                                 command=lambda: self.login(email_text, pwd_text))
+        register_button = tk.Button(self, borderwidth=0, text="New User? Click here to register",
+                                    font="Verdana 10 underline", fg='blue',
+                                    command=lambda: controller.show_frame(RegistrationPage))
+        login_button.pack(anchor='n', expand=True)
+        black_line=Frame(self, height=1, width=500, bg="black")
+        black_line.pack(anchor='n')
+        register_button.pack(pady=0, anchor='n')
+
+    # Checks database, validates credentials and allows access to specific museum page
+    def login(self, username, pwd):
+        if len(username.get()) == 0 or len(pwd.get())==0:
+            messagebox.showerror("Error","Cannot leave either field blank")
+            return
+
+        cursor = cnx.cursor()
+        query = ("SELECT COUNT(*) FROM visitor "
+                 "WHERE email = '{username}' AND password = '{password}';").format(username=username.get(), password=pwd.get())
+        cursor.execute(query)
+        count = cursor.fetchone()[0]
+        if count == 0:
+            query = ("SELECT COUNT(*) FROM admin_user "
+                     "WHERE email = '{username}' AND password = '{password}';").format(username=username.get(), password=pwd.get())
+            cursor.execute(query)
+            admin_count = cursor.fetchone()[0]
+            if admin_count == 0:
+                messagebox.showerror("Error","Either username or password is incorrect")
+            else:
+                # todo - display admin home screen
+                print("admin logged in")
+        else:
+            # todo - display choose museums page
+            print("visitor logged in")
+
 
 
 class RegistrationPage(tk.Frame):
@@ -125,7 +159,7 @@ class RegistrationPage(tk.Frame):
         black_line=Frame(self, height=1, width=500, bg="black")
         black_line.pack(pady=20)
         create_account_button = tk.Button(self, text="Create Account", fg='blue',
-                                 command=lambda: create_account(email_text, pwd_text, credit_card_text, exp_date_text, sec_code_text))
+                                          command=lambda: create_account(email_text, pwd_text, credit_card_text, exp_date_text, sec_code_text))
         back_button = tk.Button(self, text="Back", fg='blue', command=lambda: controller.show_frame(LoginPage))
         create_account_button.pack(pady=5, anchor='n')
         back_button.pack(pady=5, anchor='n')
