@@ -1,5 +1,34 @@
+from __future__ import print_function
 import tkinter as tk
 from tkinter import *
+
+import mysql.connector
+from mysql.connector import errorcode
+import datetime
+
+config = {
+  'user': 'root',
+  'password': 'din0saur',
+  'database': 'bmtrsdb',
+  'raise_on_warnings': True,
+}
+
+cnx = mysql.connector.connect(**config)
+cursor = cnx.cursor()
+DB_NAME = 'bmtrsdb'
+
+query = ("SELECT museum_name FROM museum "
+         "ORDER BY museum_name")
+
+cursor.execute(query)
+
+museum_list = []
+
+for (museum_name) in cursor:
+	museum_list.append(museum_name)
+
+cursor.close()
+cnx.close()
 
 LARGE_FONT = ("Verdana", 26, "underline")
 SMALL_FONT = ("Verdana", 10, "italic")
@@ -48,7 +77,7 @@ class SearchForMuseumPage(tk.Frame):
             museums.set('Pizza') # set the default option
 
             pickAMuseum = tk.Label(museum_select_frame, text="Pick a Museum: ")
-            popupMenu = tk.OptionMenu(museum_select_frame, museums, *choices)
+            popupMenu = tk.OptionMenu(museum_select_frame, museums, *museum_list)
             pickAMuseum.grid(row=0, column=0, sticky='e', pady=5, padx=5)
             popupMenu.grid(row=0, column=1, sticky='w', pady=5, padx=5)
 
