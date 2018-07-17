@@ -34,22 +34,25 @@ class BMTRSApp(tk.Tk):
 
         self.frames ={}
         for F in {LoginPage, RegistrationPage, SearchForMuseumPage}:
-            login_frame = F(main_window, self)
-            self.frames[F] = login_frame
+            frame = F(main_window, self)
+            self.frames[F] = frame
             #sticky alignment + stretch - so it aligns everything to all sides of window
-            login_frame.grid(row=0, column=0, sticky="nsew")
+            frame.grid(row=0, column=0, sticky="nsew")
         self.show_frame(LoginPage)
 
     def show_frame(self, container):
         frame = self.frames[container]
         frame.tkraise()
 
+    def get_page(self, page_class):
+        return self.frames[page_class]
 
 
 #PAGE 1 - LOGIN PAGE
 class LoginPage(tk.Frame):
 
     def __init__(self, parent, controller):
+        self.controller = controller
         tk.Frame.__init__(self, parent)
         title = tk.Label(self, text="BMTRS", font=LARGE_FONT)
         title.pack(pady=10, padx=10)
@@ -103,15 +106,19 @@ class LoginPage(tk.Frame):
                 print("admin logged in")
         else:
             # todo - display choose museums page
+            next_page = self.controller.get_page(SearchForMuseumPage)
+            next_page.title['text'] += username.get()
+        
             controller.show_frame(SearchForMuseumPage)
             print("visitor logged in")
 
 class SearchForMuseumPage(tk.Frame):
 
     def __init__(self, parent, controller):
+        self.controller = controller
         tk.Frame.__init__(self, parent)
-        title = tk.Label(self, text="Welcome ", font=LARGE_FONT)
-        title.pack(pady=10, padx=10)
+        self.title = tk.Label(self, text="Welcome, ", font=LARGE_FONT)
+        self.title.pack(pady=10, padx=10)
         black_line=Frame(self, height=1, width=500, bg="black")
         black_line.pack()
         museum_select_frame = tk.Frame(self, borderwidth=5, relief='groove')
