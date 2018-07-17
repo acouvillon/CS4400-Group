@@ -20,18 +20,18 @@ class BMTRSApp(tk.Tk):
         login_screen.grid_columnconfigure(0, weight=1)
 
         self.frames ={}
-        for F in {ViewSpecificMuseumPage}:
+        for F in {SearchForMuseumPage}:
             login_frame = F(login_screen, self)
             self.frames[F] = login_frame
             #sticky alignment + stretch - so it aligns everything to all sides of window
             login_frame.grid(row=0, column=0, sticky="nsew")
-        self.show_frame(ViewSpecificMuseumPage)
+        self.show_frame(SearchForMuseumPage)
 
     def show_frame(self, container):
         frame = self.frames[container]
         frame.tkraise()
 
-class ViewSpecificMuseumPage(tk.Frame):
+class SearchForMuseumPage(tk.Frame):
 
     def __init__(self, parent, controller):
             tk.Frame.__init__(self, parent)
