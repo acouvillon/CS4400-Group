@@ -12,6 +12,9 @@ config = {
     'raise_on_warnings': True,
 }
 cnx = mysql.connector.connect(**config)
+
+
+
 class BMTRSApp(tk.Tk):
 
     #self is implied -- it's the first parameter
@@ -30,7 +33,7 @@ class BMTRSApp(tk.Tk):
         main_window.grid_columnconfigure(0, weight=1)
 
         self.frames ={}
-        for F in {LoginPage, RegistrationPage}:
+        for F in {LoginPage, RegistrationPage, SearchForMuseumPage}:
             login_frame = F(main_window, self)
             self.frames[F] = login_frame
             #sticky alignment + stretch - so it aligns everything to all sides of window
@@ -66,7 +69,7 @@ class LoginPage(tk.Frame):
         pwd_entry = tk.Entry(information_entry_frame, show='\u2022', textvariable=pwd_text)
         pwd_entry.grid(row=1, column=1, sticky='w', pady=5, padx=5)
         login_button = tk.Button(self, text="Login", fg='blue',
-                                 command=lambda: self.login(email_text, pwd_text))
+                                 command=lambda: self.login(email_text, pwd_text, controller))
         register_button = tk.Button(self, borderwidth=0, text="New User? Click here to register",
                                     font="Verdana 10 underline", fg='blue',
                                     command=lambda: controller.show_frame(RegistrationPage))
@@ -75,8 +78,10 @@ class LoginPage(tk.Frame):
         black_line.pack(anchor='n')
         register_button.pack(pady=0, anchor='n')
 
+
     # Checks database, validates credentials and allows access to specific museum page
-    def login(self, username, pwd):
+    def login(self, username, pwd, controller):
+
         if len(username.get()) == 0 or len(pwd.get())==0:
             messagebox.showerror("Error","Cannot leave either field blank")
             return
@@ -98,9 +103,61 @@ class LoginPage(tk.Frame):
                 print("admin logged in")
         else:
             # todo - display choose museums page
+            controller.show_frame(SearchForMuseumPage)
             print("visitor logged in")
 
+class SearchForMuseumPage(tk.Frame):
 
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        title = tk.Label(self, text="Welcome ", font=LARGE_FONT)
+        title.pack(pady=10, padx=10)
+        black_line=Frame(self, height=1, width=500, bg="black")
+        black_line.pack()
+        museum_select_frame = tk.Frame(self, borderwidth=5, relief='groove')
+        museum_select_frame.pack(anchor='center', pady=20, padx=5)
+
+        museums = StringVar()
+        museums.set('Picasso Museum') # set the default option
+
+        query = ("SELECT museum_name FROM museum "
+                 "ORDER BY museum_name")
+
+        cursor = cnx.cursor()
+        cursor.execute(query)
+        museum_list = []
+        for (museum_name) in cursor:
+            museum_list.append(museum_name)
+        cursor.close()
+
+        pickAMuseum = tk.Label(museum_select_frame, text="Pick a Museum: ")
+        popupMenu = tk.OptionMenu(museum_select_frame, museums, *museum_list)
+        pickAMuseum.grid(row=0, column=0, sticky='e', pady=5, padx=5)
+        popupMenu.grid(row=0, column=1, sticky='w', pady=5, padx=5)
+
+        # on change dropdown value
+        def change_dropdown(*args):
+            print(museums.get())
+
+        # link function to change dropdown
+        museums.trace('w', change_dropdown)
+
+        view_all_museums_button = tk.Button(self, text="View All Museums", fg='blue')
+        # todo - command=lambda: controller.show_frame(ViewAllMuseumsPage)
+
+        my_tickets_button = tk.Button(self, borderwidth=0, text="My Tickets", fg='blue')
+        # todo - command=lambda: controller.show_frame(MyTicketsPage)
+
+        my_reviews_button = tk.Button(self, borderwidth=0, text="My Reviews", fg='blue')
+        # todo - command=lambda: controller.show_frame(MyReviewsPage)
+
+        manage_account_button = tk.Button(self, borderwidth=0, text="Manage Account", fg='blue')
+        # todo - command=lambda: controller.show_frame(ManageAccountPage)
+
+        view_all_museums_button.pack(anchor='n', expand=True)
+        my_tickets_button.pack(pady=0, anchor='n')
+        my_reviews_button.pack(pady=0, anchor='n')
+        manage_account_button.pack(pady=0, anchor='n')
 
 class RegistrationPage(tk.Frame):
 
