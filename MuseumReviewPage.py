@@ -67,12 +67,13 @@ class MuseumReviewPage(tk.Frame):
             comment_label = tk.Label(information_entry_frame, text="Comment:", font=SMALL_FONT)
             comment_label.grid(row=1, column=0, sticky='e', pady=5, padx=5)
             # u022 is code for dot so that, the user's password is not visible
-            comment_text = tk.Text(information_entry_frame, height = 5)
-            comment_text.grid(row = 1, column = 1, columnspan = 5, sticky = 'w', pady = 5, padx = 5)
+            comment = tk.Text(information_entry_frame, height = 5)
+            comment.grid(row = 1, column = 1, columnspan = 5, sticky = 'w', pady = 5, padx = 5)
+            comment_text=StringVar()
             #comment_entry = tk.Entry(information_entry_frame, show='\u2022')
             #comment_entry.grid(row=1, column=1, sticky='w', pady=5, padx=5)
             create_review_button = tk.Button(self, text="Create Review", fg='blue',
-                                     command=lambda: createreview(username_text, pwd_text))
+                                     command=lambda: create_review(rating_text, comment_text))
             #register_button = tk.Button(self, borderwidth=0, text="New User? Click here to register",
             #                            font="Verdana 10 underline", fg='blue',
             #                            command=lambda: controller.show_frame(RegistrationPage))
@@ -83,6 +84,11 @@ class MuseumReviewPage(tk.Frame):
             black_line.pack(anchor='n')
             #register_button.pack(pady=0, anchor='n')
 
+def create_review(rating, comment):
+    print('review created')
+
+
 app = BMTRSApp()
 #tkinter functionality keeps app running
 app.mainloop()
+
