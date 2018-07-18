@@ -37,7 +37,7 @@ class BMTRSApp(tk.Tk):
         main_window.grid_columnconfigure(0, weight=1)
 
         self.frames ={}
-        for F in {LoginPage, RegistrationPage, SearchForMuseumPage, ViewMuseumsPage}:
+        for F in {LoginPage, RegistrationPage, SearchForMuseumPage, ViewMuseumsPage, TicketHistoryPage, ReviewHistoryPage}:
             frame = F(main_window, self)
             self.frames[F] = frame
             #sticky alignment + stretch - so it aligns everything to all sides of window
@@ -110,11 +110,17 @@ class LoginPage(tk.Frame):
                 print("admin logged in")
         else:
             # todo - display choose museums page
+            user = username.get()
             next_page = self.controller.get_page(SearchForMuseumPage)
-            next_page.title['text'] += username.get()
+            next_page.title['text'] += user
 
             controller.show_frame(SearchForMuseumPage)
             print("visitor logged in")
+            #add login data here
+            ticket_page = self.controller.get_page(TicketHistoryPage)
+            ticket_page.populateTable(user)
+            self.controller.get_page(ReviewHistoryPage).populateTable(user)
+            
 
 class SearchForMuseumPage(tk.Frame):
 
@@ -159,11 +165,9 @@ class SearchForMuseumPage(tk.Frame):
 
         view_all_museums_button = tk.Button(self, text="View All Museums", fg='blue', command=lambda: controller.show_frame(ViewMuseumsPage))
 
-        my_tickets_button = tk.Button(self, text="My Tickets", fg='blue')
-        # todo - command=lambda: controller.show_frame(MyTicketsPage)
+        my_tickets_button = tk.Button(self, text="My Tickets", fg='blue', command=lambda: controller.show_frame(TicketHistoryPage))
 
-        my_reviews_button = tk.Button(self, text="My Reviews", fg='blue')
-        # todo - command=lambda: controller.show_frame(MyReviewsPage)
+        my_reviews_button = tk.Button(self, text="My Reviews", fg='blue', command=lambda: controller.show_frame(ReviewHistoryPage))
 
         manage_account_button = tk.Button(self, text="Manage Account", fg='blue')
         # todo - command=lambda: controller.show_frame(ManageAccountPage)
@@ -318,8 +322,116 @@ class ViewMuseumsPage(tk.Frame):
         #Use this for the sql for the next page
         if museum != '':
             print (museum)
-            controller.show_frame(ViewMuseumsPage)        
+            controller.show_frame(ViewMuseumsPage)
 
+
+class TicketHistoryPage(tk.Frame):
+
+    museum_list = []
+    time_list = []
+    price_list = []
+
+    tree = None
+    
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        title = tk.Label(self, text="My Tickets", font=LARGE_FONT)
+        title.pack(pady=10, padx=10)
+        main_frame = tk.Frame(self, pady=10)
+        main_frame.pack(anchor='center', pady=0, padx=5)
+        self.tree = ttk.Treeview(main_frame)
+            
+        self.tree['columns'] = ('date', 'price')
+        self.tree.column('date', width=100, anchor='center')
+        self.tree.column('price', width=100, anchor='e')
+        self.tree.heading('#0', text='Museum Name')
+        self.tree.heading('date', text='Purchase Date')
+        self.tree.heading('price', text='Price')
+        self.tree.pack()
+        back_button = tk.Button(self, text="Back", fg='black', command=lambda: controller.show_frame(SearchForMuseumPage))
+        back_button.pack(pady=5, anchor='n')
+        #self.populateTable('helen@gatech.edu')
+        
+    #must be called from user login page at login
+    def populateTable(self, username):
+        num = 0
+        self.sqlQuery(username)
+        for museum in self.museum_list:
+            self.tree.insert('', 'end', text=museum, values=(self.time_list[num].strftime('%m/%d/%Y'), '$'+self.price_list[num]))
+            num+=1
+                    
+    def sqlQuery(self, username):
+        cursor = cnx.cursor()
+
+        query = ("""SELECT museum_name, purchase_timestamp, price
+                    FROM ticket 
+                    WHERE email = '{0}'""".format(username))
+
+        cursor.execute(query)
+        
+
+        for (museum_name, time, price) in cursor:
+            print(museum_name)
+            self.museum_list.append(museum_name)
+            self.time_list.append(time)
+            self.price_list.append(price)
+            
+
+        cursor.close()
+        
+#PAGE 9 - MY REVIEWS page
+class ReviewHistoryPage(tk.Frame):
+
+    museum_list = []
+    review_list = []
+    rating_list = []
+
+    tree = None
+    
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        title = tk.Label(self, text="My Reviews", font=LARGE_FONT)
+        title.pack(pady=10, padx=10)
+        main_frame = tk.Frame(self, pady=10)
+        main_frame.pack(anchor='center', pady=0, padx=5)
+        self.tree = ttk.Treeview(main_frame)
+            
+        self.tree['columns'] = ('review', 'rating')
+        self.tree.column('#0', width=150, anchor='center')
+        self.tree.column('review', width=300, anchor='center')
+        self.tree.column('rating', width=50, anchor='e')
+        self.tree.heading('#0', text='Museum Name')
+        self.tree.heading('review', text='Review')
+        self.tree.heading('rating', text='Rating')
+        self.tree.pack()
+        back_button = tk.Button(self, text="Back", fg='black', command=lambda: controller.show_frame(SearchForMuseumPage))
+        back_button.pack(pady=5, anchor='n')
+        # self.populateTable('helen@gatech.edu')
+        
+    #must be called from user login page at login
+    def populateTable(self, username):
+        num = 0
+        self.sqlQuery(username)
+        for museum in self.museum_list:
+            self.tree.insert('', 'end', text=museum, values=(self.review_list[num], str(self.rating_list[num])+'/5'))
+            num+=1
+            
+    def sqlQuery(self, username):
+    
+        cursor = cnx.cursor()
+
+        query = ("""SELECT museum_name, comment, rating
+                    FROM review 
+                    WHERE email = '{0}'""".format(username))
+
+        cursor.execute(query)
+        
+        for (museum_name, review, rating) in cursor:
+            self.museum_list.append(museum_name)
+            self.review_list.append(review)
+            self.rating_list.append(rating)
+
+        cursor.close()
 
 app = BMTRSApp()
 #tkinter functionality keeps app running
