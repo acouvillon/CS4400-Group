@@ -9,7 +9,7 @@ import datetime
 
 config = {
   'user': 'root',
-  'password': '',
+  'password': 'rootuserpassword',
   'database': 'bmtrsdb',
   'raise_on_warnings': True,
 }
@@ -66,28 +66,37 @@ class BMTRSApp(tk.Tk):
 
 #PAGE 7 - VIEW ALL MUSUEMS page
 class ViewMuseumsPage(tk.Frame):
-	def __init__(self, parent, controller):
-			tk.Frame.__init__(self, parent)
-			title = tk.Label(self, text="All Museums", font=LARGE_FONT)
-			title.pack(pady=10, padx=10)
-			main_frame = tk.Frame(self, pady=10)
-			main_frame.pack(anchor='center', pady=0, padx=5)
-			tree = ttk.Treeview(main_frame)
-			num = 0
-			for museum in museum_list:
-				tree.insert('', 'end', text=museum, values=(review_list[num]))
-				num+=1
-				
-			tree['columns'] = ('rating')
-			tree.column('rating', width=100, anchor='ne')
-			tree.heading('#0', text='Museum Name')
-			tree.heading('rating', text='Average Rating')
-			tree.pack()
-			select_button = tk.Button(self, text="Select", fg='black', command=lambda: controller.show_frame(ViewMuseumsPage))
-			select_button.pack(pady=5, anchor='n')
-			back_button = tk.Button(self, text="Back", fg='black', command=lambda: controller.show_frame(ViewMuseumsPage))
-			back_button.pack(pady=5, anchor='n')
-
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        title = tk.Label(self, text="All Museums", font=LARGE_FONT)
+        title.pack(pady=10, padx=10)
+        main_frame = tk.Frame(self, pady=10)
+        main_frame.pack(anchor='center', pady=0, padx=5)
+        tree = ttk.Treeview(main_frame)
+        num = 0
+        for museum in museum_list:
+            tree.insert('', 'end', text=museum, values=(review_list[num]))
+            num+=1
+            
+        tree['columns'] = ('rating')
+        tree.column('rating', width=100, anchor='ne')
+        tree.heading('#0', text='Museum Name')
+        tree.heading('rating', text='Average Rating')
+        tree.pack()
+        select_button = tk.Button(self, text="Select", fg='black', command=lambda: self.select_press(tree, controller))
+        select_button.pack(pady=5, anchor='n')
+        back_button = tk.Button(self, text="Back", fg='black', command=lambda: controller.show_frame(ViewMuseumsPage))
+        back_button.pack(pady=5, anchor='n')
+        
+    def select_press(self, tree, controller):
+        curItem = tree.focus()
+        museum = tree.item(curItem)['text']
+        #Use this for the sql for the next page
+        if museum != '':
+            print (museum)
+            controller.show_frame(ViewMuseumsPage)
+        
+        
 app = BMTRSApp()
 #tkinter functionality keeps app running
 app.mainloop()
