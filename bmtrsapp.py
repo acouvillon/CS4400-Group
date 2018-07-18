@@ -37,7 +37,7 @@ class BMTRSApp(tk.Tk):
         main_window.grid_columnconfigure(0, weight=1)
 
         self.frames ={}
-        for F in {LoginPage, RegistrationPage, SearchForMuseumPage, ViewMuseumsPage, TicketHistoryPage, ReviewHistoryPage}:
+        for F in {LoginPage, RegistrationPage, SearchForMuseumPage, ViewMuseumsPage, TicketHistoryPage, ReviewHistoryPage, ViewSpecificMuseumPage}:
             frame = F(main_window, self)
             self.frames[F] = frame
             #sticky alignment + stretch - so it aligns everything to all sides of window
@@ -54,6 +54,8 @@ class BMTRSApp(tk.Tk):
 
 #PAGE 1 - LOGIN PAGE
 class LoginPage(tk.Frame):
+
+    user = None
 
     def __init__(self, parent, controller):
         self.controller = controller
@@ -111,6 +113,7 @@ class LoginPage(tk.Frame):
         else:
             # todo - display choose museums page
             user = username.get()
+            self.user = user
             next_page = self.controller.get_page(SearchForMuseumPage)
             next_page.title['text'] += user
 
@@ -159,6 +162,9 @@ class SearchForMuseumPage(tk.Frame):
         # on change dropdown value
         def change_dropdown(*args):
             print(museums.get())
+            museum_page = controller.get_page(ViewSpecificMuseumPage)
+            museum_page.populateTable(museums.get())
+            controller.show_frame(ViewSpecificMuseumPage)
 
         # link function to change dropdown
         museums.trace('w', change_dropdown)
@@ -322,7 +328,9 @@ class ViewMuseumsPage(tk.Frame):
         #Use this for the sql for the next page
         if museum != '':
             print (museum)
-            controller.show_frame(ViewMuseumsPage)
+            museum_page = controller.get_page(ViewSpecificMuseumPage)
+            museum_page.populateTable(museum)
+            controller.show_frame(ViewSpecificMuseumPage)
 
 
 class TicketHistoryPage(tk.Frame):
@@ -430,6 +438,80 @@ class ReviewHistoryPage(tk.Frame):
             self.museum_list.append(museum_name)
             self.review_list.append(review)
             self.rating_list.append(rating)
+
+        cursor.close()
+           
+        
+class ViewSpecificMuseumPage(tk.Frame):
+
+    tree = None
+    title = None
+    
+    exhibit_list = []
+    year_list = []
+    link_list = []
+
+    def __init__(self, parent, controller):
+            tk.Frame.__init__(self, parent)
+            self.title = tk.Label(self, text="[INSERT MUSEUM NAME HERE]", font=LARGE_FONT)
+            self.title.pack(pady=10, padx=10)
+            black_line=Frame(self, height=1, width=500, bg="black")
+            black_line.pack()
+            main_frame = tk.Frame(self, pady=10)
+            main_frame.pack(anchor='center', pady=0, padx=5)
+            
+            self.tree = ttk.Treeview(main_frame)
+
+            self.tree['columns'] = ('year','url')
+            self.tree.column('#0', width=200, anchor='w')
+            self.tree.column('year', width=50, anchor='center')
+            self.tree.column('url', width=200, anchor='e')
+            self.tree.heading('#0', text='Exhibit')
+            self.tree.heading('year', text='Year')
+            self.tree.heading('url', text='Link to Exhibit')
+            self.tree.pack()
+            
+            #self.populateTable('CCCB')
+
+            purchase_ticket_button = tk.Button(self, text="Purchase Ticket", fg='blue',
+                                     command=lambda: controller.show_frame(ViewAllMuseumsPage))
+            review_museum_button = tk.Button(self, borderwidth=0, text="Review Museum", fg='blue',
+                                        command=lambda: controller.show_frame(MyTicketsPage))
+            view_other_reviews_button = tk.Button(self, borderwidth=0, text="View Others' Reviews", fg='blue',
+                                        command=lambda: controller.show_frame(MyReviewsPage))
+            back_button = tk.Button(self, borderwidth=0, text="Back", fg='blue',
+                                        command=lambda: controller.show_frame(SearchForMuseumPage))
+
+            purchase_ticket_button.pack(anchor='n', expand=True)
+            review_museum_button.pack(pady=0, anchor='n')
+            view_other_reviews_button.pack(pady=0, anchor='n')
+            back_button.pack(pady=0, anchor='n')
+            
+            
+    #must be called from previous page
+    def populateTable(self, museum):
+        num = 0
+        self.title['text'] = museum
+        self.sqlQuery(museum)
+        for exhibit in self.exhibit_list:
+            self.tree.insert('', 'end', text=exhibit, values=(self.year_list[num], self.link_list[num]))
+            num+=1
+    
+    def sqlQuery(self, museum_name):
+        cursor = cnx.cursor()
+
+        query = ("""SELECT exhibit_name, year, url
+                    FROM exhibit
+                    WHERE museum_name = '{0}'""".format(museum_name))
+
+        cursor.execute(query)
+
+
+        for (exhibit, year, link) in cursor:
+            self.exhibit_list.append(exhibit)
+            self.year_list.append(year)
+            self.link_list.append(link)
+
 
         cursor.close()
 
