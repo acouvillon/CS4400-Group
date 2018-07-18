@@ -1,7 +1,13 @@
+from __future__ import print_function
 import tkinter as tk
 from tkinter import *
+from tkinter import ttk
 from tkinter import messagebox
+
 import mysql.connector
+from mysql.connector import errorcode
+import datetime
+
 
 LARGE_FONT = ("Verdana", 26, "underline")
 SMALL_FONT = ("Verdana", 10, "italic")
@@ -12,8 +18,6 @@ config = {
     'raise_on_warnings': True,
 }
 cnx = mysql.connector.connect(**config)
-
-
 
 class BMTRSApp(tk.Tk):
 
@@ -33,7 +37,7 @@ class BMTRSApp(tk.Tk):
         main_window.grid_columnconfigure(0, weight=1)
 
         self.frames ={}
-        for F in {LoginPage, RegistrationPage, SearchForMuseumPage}:
+        for F in {LoginPage, RegistrationPage, SearchForMuseumPage, ViewMuseumsPage}:
             frame = F(main_window, self)
             self.frames[F] = frame
             #sticky alignment + stretch - so it aligns everything to all sides of window
@@ -153,8 +157,7 @@ class SearchForMuseumPage(tk.Frame):
         # link function to change dropdown
         museums.trace('w', change_dropdown)
 
-        view_all_museums_button = tk.Button(self, text="View All Museums", fg='blue')
-        # todo - command=lambda: controller.show_frame(ViewAllMuseumsPage)
+        view_all_museums_button = tk.Button(self, text="View All Museums", fg='blue', command=lambda: controller.show_frame(ViewMuseumsPage))
 
         my_tickets_button = tk.Button(self, text="My Tickets", fg='blue')
         # todo - command=lambda: controller.show_frame(MyTicketsPage)
@@ -210,7 +213,7 @@ class RegistrationPage(tk.Frame):
         #todo - credit card entry formatting as .... .... .... 3333
         credit_card_text.trace("w", lambda name, index, mode, credit_card_text=credit_card_text: entryFormattingForCreditCardNumber(credit_card_entry))
 
-        exp_date = tk.Label(information_entry_frame, text="Credit Card Exp. Date:", font=SMALL_FONT)
+        exp_date = tk.Label(information_entry_frame, text="Credit Card Exp. Date (mm/yy):", font=SMALL_FONT)
         exp_date.grid(row=4, column=0, sticky='e', pady=5, padx=5)
         exp_date_text= StringVar()
         #todo - format entry as mm/yy
@@ -218,11 +221,11 @@ class RegistrationPage(tk.Frame):
         exp_date_entry.grid(row=4, column=1, sticky='w', pady=5, padx=5)
 
         security_code = tk.Label(information_entry_frame, text="Credit Card Security Code:", font=SMALL_FONT)
-        security_code.grid(row=4, column=0, sticky='e', pady=5, padx=5)
+        security_code.grid(row=5, column=0, sticky='e', pady=5, padx=5)
         sec_code_text = StringVar()
         #todo - format entry as 3 digit entry only
         security_code_entry = tk.Entry(information_entry_frame, textvariable=sec_code_text)
-        security_code_entry.grid(row=4, column=1, sticky='w', pady=5, padx=5)
+        security_code_entry.grid(row=5, column=1, sticky='w', pady=5, padx=5)
 
         black_line=Frame(self, height=1, width=500, bg="black")
         black_line.pack(pady=20)
@@ -234,7 +237,30 @@ class RegistrationPage(tk.Frame):
 
 #todo - implement this function
 def create_account(email, pwd, credit_card_num, exp_date, security_code):
-    print('account created')
+    cursor = cnx.cursor()
+    
+    date = exp_date.get()
+    
+    
+            
+    if len(email.get())==0 or len(pwd.get())==0 or len(credit_card_num.get())==0 or len(exp_date.get())==0 or len(security_code.get())==0:
+        messagebox.showerror("Error","All fields required")
+        return
+            
+    if len(date) != 5 or date[2]!='/':
+        messagebox.showerror("Error","Invalid expiration date")
+        return
+        
+    month = date.get()[:2]
+    year = date.get()[3:]
+    
+    query = ("""INSERT INTO visitor (email, password, credit_card_num,
+            expiration_month, expiration_year, credit_card_security_num)
+            VALUES ('{}', '{}', '{}', {}, '{}', {})""".format(email.get(), pwd.get(), credit_card_num.get(), month, year, security_code.get()))
+            
+    cursor.execute(query)
+    cnx.commit()
+    cursor.close()
 
 def entryFormattingForCreditCardNumber(entry):
     text = entry.get()
@@ -242,6 +268,57 @@ def entryFormattingForCreditCardNumber(entry):
         entry.insert(SEPARATOR, ' ')
         entry.icursor(len(text)+1)
 
+
+class ViewMuseumsPage(tk.Frame):
+    def __init__(self, parent, controller):
+    
+        cursor = cnx.cursor()
+
+        query = ("SELECT museum_name, AVG(rating) FROM museum "
+                    " NATURAL LEFT OUTER JOIN review GROUP BY museum_name")
+
+        cursor.execute(query)
+
+        museum_list = []
+        review_list = []
+
+        for (museum_name, review) in cursor:
+            museum_list.append(museum_name)
+            review_list.append(review)
+	
+        cursor.close()
+        
+        tk.Frame.__init__(self, parent)
+        title = tk.Label(self, text="All Museums", font=LARGE_FONT)
+        title.pack(pady=10, padx=10)
+        main_frame = tk.Frame(self, pady=10)
+        main_frame.pack(anchor='center', pady=0, padx=5)
+        tree = ttk.Treeview(main_frame)
+        num = 0
+        for museum in museum_list:
+            if (review_list[num] != None):
+                tree.insert('', 'end', text=museum, values=(review_list[num]))
+            else:
+                tree.insert('', 'end', text=museum, values=('-'))
+            num+=1
+            
+        tree['columns'] = ('rating')
+        tree.column('rating', width=100, anchor='ne')
+        tree.heading('#0', text='Museum Name')
+        tree.heading('rating', text='Average Rating')
+        tree.pack()
+        select_button = tk.Button(self, text="Select", fg='black', command=lambda: self.select_press(tree, controller))
+        select_button.pack(pady=5, anchor='n')
+        back_button = tk.Button(self, text="Back", fg='black', command=lambda: controller.show_frame(SearchForMuseumPage))
+        back_button.pack(pady=5, anchor='n')
+        
+    def select_press(self, tree, controller):
+        curItem = tree.focus()
+        museum = tree.item(curItem)['text']
+        #Use this for the sql for the next page
+        if museum != '':
+            print (museum)
+            controller.show_frame(ViewMuseumsPage)        
 
 
 app = BMTRSApp()
