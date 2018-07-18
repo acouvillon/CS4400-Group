@@ -66,7 +66,7 @@ class AdminCuratorRequestsPage(tk.Frame):
 
             approve_button.pack(pady=0, anchor='n')
             reject_button.pack(pady=0, anchor='n')
-            back_button.pack(pady=0, anchor='w')
+            back_button.pack(padx=15, pady=10, anchor='w')
 
 def getCurratorRequests():
     #TODO: put SQL statement here
