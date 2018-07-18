@@ -27,8 +27,10 @@ museum_list = []
 review_list = []
 
 for (museum_name, review) in cursor:
-	museum_list.append(museum_name)
-	review_list.append(review)
+    print(museum_name)
+    museum_list.append(museum_name)
+    print(review)
+    review_list.append(review)
 	
 
 cursor.close()
@@ -75,7 +77,10 @@ class ViewMuseumsPage(tk.Frame):
         tree = ttk.Treeview(main_frame)
         num = 0
         for museum in museum_list:
-            tree.insert('', 'end', text=museum, values=(review_list[num]))
+            if (review_list[num] != None):
+                tree.insert('', 'end', text=museum, values=(review_list[num]))
+            else:
+                tree.insert('', 'end', text=museum, values=('-'))
             num+=1
             
         tree['columns'] = ('rating')
