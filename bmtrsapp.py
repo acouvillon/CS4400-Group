@@ -108,7 +108,7 @@ class LoginPage(tk.Frame):
             # todo - display choose museums page
             next_page = self.controller.get_page(SearchForMuseumPage)
             next_page.title['text'] += username.get()
-        
+
             controller.show_frame(SearchForMuseumPage)
             print("visitor logged in")
 
@@ -122,7 +122,7 @@ class SearchForMuseumPage(tk.Frame):
         black_line=Frame(self, height=1, width=500, bg="black")
         black_line.pack()
         museum_select_frame = tk.Frame(self, borderwidth=5, relief='groove')
-        museum_select_frame.pack(anchor='center', pady=20, padx=5)
+        museum_select_frame.pack(anchor='center', pady=20, padx=20, ipadx=20)
 
         museums = StringVar()
         museums.set('Picasso Museum') # set the default option
@@ -132,13 +132,17 @@ class SearchForMuseumPage(tk.Frame):
 
         cursor = cnx.cursor()
         cursor.execute(query)
-        museum_list = []
-        for (museum_name) in cursor:
-            museum_list.append(museum_name)
+        museum_list = cursor.fetchall()
+        museum_names = []
+        for i in range(0, len(museum_list)):
+            museum_names.append(museum_list[i][0])
+            i += 1
+
+        print(museum_names) #todo delete
         cursor.close()
 
         pickAMuseum = tk.Label(museum_select_frame, text="Pick a Museum: ")
-        popupMenu = tk.OptionMenu(museum_select_frame, museums, *museum_list)
+        popupMenu = tk.OptionMenu(museum_select_frame, museums, *museum_names)
         pickAMuseum.grid(row=0, column=0, sticky='e', pady=5, padx=5)
         popupMenu.grid(row=0, column=1, sticky='w', pady=5, padx=5)
 
@@ -152,19 +156,19 @@ class SearchForMuseumPage(tk.Frame):
         view_all_museums_button = tk.Button(self, text="View All Museums", fg='blue')
         # todo - command=lambda: controller.show_frame(ViewAllMuseumsPage)
 
-        my_tickets_button = tk.Button(self, borderwidth=0, text="My Tickets", fg='blue')
+        my_tickets_button = tk.Button(self, text="My Tickets", fg='blue')
         # todo - command=lambda: controller.show_frame(MyTicketsPage)
 
-        my_reviews_button = tk.Button(self, borderwidth=0, text="My Reviews", fg='blue')
+        my_reviews_button = tk.Button(self, text="My Reviews", fg='blue')
         # todo - command=lambda: controller.show_frame(MyReviewsPage)
 
-        manage_account_button = tk.Button(self, borderwidth=0, text="Manage Account", fg='blue')
+        manage_account_button = tk.Button(self, text="Manage Account", fg='blue')
         # todo - command=lambda: controller.show_frame(ManageAccountPage)
 
-        view_all_museums_button.pack(anchor='n', expand=True)
-        my_tickets_button.pack(pady=0, anchor='n')
-        my_reviews_button.pack(pady=0, anchor='n')
-        manage_account_button.pack(pady=0, anchor='n')
+        view_all_museums_button.pack(pady=20, anchor='n')
+        my_tickets_button.pack(pady=5, anchor='n')
+        my_reviews_button.pack(pady=5, anchor='n')
+        manage_account_button.pack(pady=5, anchor='n')
 
 class RegistrationPage(tk.Frame):
 
@@ -175,14 +179,14 @@ class RegistrationPage(tk.Frame):
         black_line=Frame(self, height=1, width=500, bg="black")
         black_line.pack(pady=20)
 
-        information_entry_frame = tk.Frame(self, borderwidth=5, relief='groove')
+        information_entry_frame = tk.Frame(self, height=200, width=500, borderwidth=5, relief='groove')
         information_entry_frame.pack(anchor='center', pady=20, padx=5)
 
         email_label = tk.Label(information_entry_frame, text="Email:", font=SMALL_FONT)
-        email_label.grid(row=0, column=0, sticky='e', pady=5, padx=5)
+        email_label.grid(row=0, column=0, sticky='e', pady=10, padx=10)
         email_text=StringVar()
         email_entry = tk.Entry(information_entry_frame, textvariable=email_text)
-        email_entry.grid(row=0, column=1, sticky='w', pady=5, padx=5)
+        email_entry.grid(row=0, column=1, sticky='w', pady=10, padx=10)
 
 
         pwd_label = tk.Label(information_entry_frame, text="Password:", font=SMALL_FONT)
