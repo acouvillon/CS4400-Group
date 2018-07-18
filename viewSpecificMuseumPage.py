@@ -51,9 +51,9 @@ class ViewSpecificMuseumPage(tk.Frame):
                 num+=1
 
             tree['columns'] = ('year','url')
-            tree.column('#0', width=200, anchor='nw')
-            tree.column('year', width=100, anchor='nw')
-            tree.column('url', width=200, anchor='nw')
+            tree.column('#0', width=200, anchor='w')
+            tree.column('year', width=100, anchor='center')
+            tree.column('url', width=200, anchor='e')
             tree.heading('#0', text='Exhibit')
             tree.heading('year', text='Year')
             tree.heading('url', text='Link to Exhibit')
