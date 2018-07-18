@@ -44,7 +44,7 @@ class CuratorRequestPage(tk.Frame):
             black_line.pack()
 
             museum_select_frame = tk.Frame(self, borderwidth=5, relief='groove')
-            museum_select_frame.pack(anchor='center', pady=20, padx=5)
+            museum_select_frame.pack(anchor='center', pady=20, padx=20, ipadx=20)
 
             museums = StringVar()
             choices = { 'Pizza','Lasagne','Fries','Fish','Potatoe'}
@@ -64,14 +64,13 @@ class CuratorRequestPage(tk.Frame):
 
             create_request_button = tk.Button(self, text="Create Curator Request", fg='blue',
                                      command=lambda: replaceThis())
-            back_button = tk.Button(self, borderwidth=0, text="Back", fg='blue',
+            back_button = tk.Button(self, text="Back", fg='blue',
                                         command=lambda: controller.show_frame(ManageAccountPage))
     
 
-            create_request_button.pack(anchor='n', expand=True)
-            back_button.pack(pady=0, anchor='n')
-            #my_reviews_button.pack(pady=0, anchor='n')
-            #manage_account_button.pack(pady=0, anchor='n')
+            create_request_button.pack(pady=20, anchor='n')
+            back_button.pack(pady=5, anchor='n')
+
             
 app = BMTRSApp()
 #tkinter functionality keeps app running
