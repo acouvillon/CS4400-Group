@@ -53,7 +53,7 @@ TABLES['museum'] = (
     "`curator_email` VARCHAR(100),"
     "PRIMARY KEY (`museum_name`),"
     "CONSTRAINT `FK_email` FOREIGN KEY (`curator_email`)"
-    "REFERENCES `visitor` (`email`)"
+    "REFERENCES `visitor` (`email`) ON DELETE CASCADE"
     ") ENGINE=InnoDB;")
 
 TABLES['admin_user'] = (
