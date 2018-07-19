@@ -7,7 +7,6 @@ from tkinter import messagebox
 import mysql.connector
 from mysql.connector import errorcode
 import datetime
-import time
 
 
 LARGE_FONT = ("Verdana", 26, "underline")
@@ -28,7 +27,7 @@ class BMTRSApp(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
         main_window = tk.Frame(self)
-        self.wm_title("")
+        self.wm_title("BMTRS")
 
         #fill fills space allotted
         #expand beyond space allotted
@@ -38,7 +37,7 @@ class BMTRSApp(tk.Tk):
         main_window.grid_columnconfigure(0, weight=1)
 
         self.frames ={}
-        for F in {LoginPage, RegistrationPage, SearchForMuseumPage, ViewMuseumsPage, TicketHistoryPage, ReviewHistoryPage, ViewSpecificMuseumPage}:
+        for F in {LoginPage, RegistrationPage, SearchForMuseumPage, ViewMuseumsPage, TicketHistoryPage, ReviewHistoryPage, ViewSpecificMuseumPage, ManageAccountPage}:
             frame = F(main_window, self)
             self.frames[F] = frame
             #sticky alignment + stretch - so it aligns everything to all sides of window
@@ -57,6 +56,7 @@ class BMTRSApp(tk.Tk):
 class LoginPage(tk.Frame):
 
     user = None
+    textboxes = None
 
     def __init__(self, parent, controller):
         self.controller = controller
@@ -78,6 +78,7 @@ class LoginPage(tk.Frame):
         pwd_text = StringVar()
         pwd_entry = tk.Entry(information_entry_frame, show='\u2022', textvariable=pwd_text)
         pwd_entry.grid(row=1, column=1, sticky='w', pady=5, padx=5)
+        self.textboxes = (email_entry, pwd_entry)
         login_button = tk.Button(self, text="Login", fg='blue',
                                  command=lambda: self.login(email_text, pwd_text, controller))
         register_button = tk.Button(self, borderwidth=0, text="New User? Click here to register",
@@ -121,9 +122,6 @@ class LoginPage(tk.Frame):
 
             controller.show_frame(SearchForMuseumPage)
             print("visitor logged in")
-            #add login data here
-            
-            self.controller.get_page(ReviewHistoryPage).populateTable(user)
             
 
 class SearchForMuseumPage(tk.Frame):
@@ -175,10 +173,9 @@ class SearchForMuseumPage(tk.Frame):
 
         my_tickets_button = tk.Button(self, text="My Tickets", fg='blue', command=lambda: show_ticket_page())
 
-        my_reviews_button = tk.Button(self, text="My Reviews", fg='blue', command=lambda: controller.show_frame(ReviewHistoryPage))
+        my_reviews_button = tk.Button(self, text="My Reviews", fg='blue', command=lambda: show_reviews_page())
 
-        manage_account_button = tk.Button(self, text="Manage Account", fg='blue')
-        # todo - command=lambda: controller.show_frame(ManageAccountPage)
+        manage_account_button = tk.Button(self, text="Manage Account", fg='blue', command=lambda: controller.show_frame(ManageAccountPage))
 
         view_all_museums_button.pack(pady=20, anchor='n')
         my_tickets_button.pack(pady=5, anchor='n')
@@ -188,6 +185,10 @@ class SearchForMuseumPage(tk.Frame):
         def show_ticket_page():
             self.controller.get_page(TicketHistoryPage).populateTable(self.user)
             self.controller.show_frame(TicketHistoryPage)
+            
+        def show_reviews_page():
+            self.controller.get_page(ReviewHistoryPage).populateTable(self.user)
+            self.controller.show_frame(ReviewHistoryPage)
 
 class RegistrationPage(tk.Frame):
 
@@ -337,7 +338,6 @@ class ViewMuseumsPage(tk.Frame):
             museum_page.populateTable(museum)
             controller.show_frame(ViewSpecificMuseumPage)
 
-
 class TicketHistoryPage(tk.Frame):
 
     museum_list = []
@@ -428,6 +428,7 @@ class ReviewHistoryPage(tk.Frame):
         
     #must be called from user login page at login
     def populateTable(self, username):
+        self.tree.delete(*self.tree.get_children())
         num = 0
         self.sqlQuery(username)
         for museum in self.museum_list:
@@ -436,6 +437,10 @@ class ReviewHistoryPage(tk.Frame):
             
     def sqlQuery(self, username):
     
+        self.museum_list = []
+        self.review_list = []
+        self.rating_list = []
+        
         cursor = cnx.cursor()
 
         query = ("""SELECT museum_name, comment, rating
@@ -563,12 +568,63 @@ class ViewSpecificMuseumPage(tk.Frame):
     def link_tree(self,event):
         cur_item = self.tree.focus()
         url = self.tree.item(cur_item)['values'][1]
-
-        #for opening the link in browser
+        
         import webbrowser
         webbrowser.open('{}'.format(url))
-        #do whatever you want    
 
+        
+class ManageAccountPage(tk.Frame):
+
+    def __init__(self, parent, controller):
+            tk.Frame.__init__(self, parent)
+            title = tk.Label(self, text="Manage Account", font=LARGE_FONT)
+            title.pack(pady=10, padx=10)
+            black_line=Frame(self, height=1, width=500, bg="black")
+            black_line.pack()
+
+            log_out_button = tk.Button(self, text="Log Out", fg='blue',
+                                     command=lambda: self.logout(controller))
+            curator_request_button = tk.Button(self, borderwidth=0, text="Curator Request", fg='blue',
+                                        command=lambda: controller.show_frame(MyTicketsPage))
+            delete_account_button = tk.Button(self, borderwidth=0, text="Delete Account", fg='blue',
+                                        command=lambda: self.delete_account(controller))
+            back_button = tk.Button(self, borderwidth=0, text="Back", fg='blue',
+                                        command=lambda: controller.show_frame(SearchForMuseumPage))
+
+            log_out_button.pack(pady=20, anchor='n')
+            curator_request_button.pack(pady=5, anchor='n')
+            delete_account_button.pack(pady=5, anchor='n')
+            back_button.pack(pady=5, anchor='n')
+
+    def logout(self, controller):
+        login_page = controller.get_page(LoginPage)
+        textboxes = login_page.textboxes
+        
+        textboxes[0].focus_set()
+        
+        for textbox in textboxes:
+            textbox.delete(0,END)
+        
+        controller.show_frame(LoginPage)
+        
+    def delete_account(self, controller):
+        user = controller.get_page(LoginPage).user
+        result = messagebox.askquestion("Delete Account", "Deleting your account will get rid of all of your reviews,"
+                                "ticket history, and credit card information. Do you still wish to proceed?", icon='warning')
+        if result == 'yes':
+        
+            cursor = cnx.cursor()
+
+            query = ("""DELETE from visitor
+                        WHERE email = '{0}'""".format(user))
+                        
+            cursor.execute(query)
+            cnx.commit()
+            cursor.close()
+            
+            self.logout(controller)
+            messagebox.showinfo("Account Deleted", "Account deleted.")
+        
 app = BMTRSApp()
 #tkinter functionality keeps app running
 app.mainloop()
