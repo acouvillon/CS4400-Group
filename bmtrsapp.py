@@ -169,7 +169,7 @@ class SearchForMuseumPage(tk.Frame):
         # link function to change dropdown
         museums.trace('w', change_dropdown)
 
-        view_all_museums_button = tk.Button(self, text="View All Museums", fg='blue', command=lambda: controller.show_frame(ViewMuseumsPage))
+        view_all_museums_button = tk.Button(self, text="View All Museums", fg='blue', command=lambda: show_museums_page())
 
         my_tickets_button = tk.Button(self, text="My Tickets", fg='blue', command=lambda: show_ticket_page())
 
@@ -189,6 +189,11 @@ class SearchForMuseumPage(tk.Frame):
         def show_reviews_page():
             self.controller.get_page(ReviewHistoryPage).populateTable(self.user)
             self.controller.show_frame(ReviewHistoryPage)
+            
+        def show_museums_page():
+            self.controller.get_page(ViewMuseumsPage).sql_query()
+            self.controller.show_frame(ViewMuseumsPage)
+            
 
 class RegistrationPage(tk.Frame):
 
@@ -296,7 +301,28 @@ def entryFormattingForCreditCardNumber(entry):
 
 class ViewMuseumsPage(tk.Frame):
     def __init__(self, parent, controller):
+        
+        tk.Frame.__init__(self, parent)
+        title = tk.Label(self, text="All Museums", font=LARGE_FONT)
+        title.pack(pady=10, padx=10)
+        main_frame = tk.Frame(self, pady=10)
+        main_frame.pack(anchor='center', pady=0, padx=5)
+        self.tree = ttk.Treeview(main_frame)
+            
+        self.tree['columns'] = ('rating')
+        self.tree.column('rating', width=100, anchor='ne')
+        self.tree.heading('#0', text='Museum Name')
+        self.tree.heading('rating', text='Average Rating')
+        self.tree.pack()
+        select_button = tk.Button(self, text="Select", fg='black', command=lambda: self.select_press(self.tree, controller))
+        select_button.pack(pady=5, anchor='n')
+        back_button = tk.Button(self, text="Back", fg='black', command=lambda: controller.show_frame(SearchForMuseumPage))
+        back_button.pack(pady=5, anchor='n')
+        
+    def sql_query(self):
     
+        self.tree.delete(*self.tree.get_children())
+        
         cursor = cnx.cursor()
 
         query = ("SELECT museum_name, AVG(rating) FROM museum "
@@ -313,29 +339,15 @@ class ViewMuseumsPage(tk.Frame):
 	
         cursor.close()
         
-        tk.Frame.__init__(self, parent)
-        title = tk.Label(self, text="All Museums", font=LARGE_FONT)
-        title.pack(pady=10, padx=10)
-        main_frame = tk.Frame(self, pady=10)
-        main_frame.pack(anchor='center', pady=0, padx=5)
-        tree = ttk.Treeview(main_frame)
         num = 0
+        
         for museum in museum_list:
             if (review_list[num] != None):
-                tree.insert('', 'end', text=museum, values=(review_list[num]))
+                self.tree.insert('', 'end', text=museum, values=(review_list[num]))
             else:
-                tree.insert('', 'end', text=museum, values=('-'))
+                self.tree.insert('', 'end', text=museum, values=('-'))
             num+=1
-            
-        tree['columns'] = ('rating')
-        tree.column('rating', width=100, anchor='ne')
-        tree.heading('#0', text='Museum Name')
-        tree.heading('rating', text='Average Rating')
-        tree.pack()
-        select_button = tk.Button(self, text="Select", fg='black', command=lambda: self.select_press(tree, controller))
-        select_button.pack(pady=5, anchor='n')
-        back_button = tk.Button(self, text="Back", fg='black', command=lambda: controller.show_frame(SearchForMuseumPage))
-        back_button.pack(pady=5, anchor='n')
+    
         
     def select_press(self, tree, controller):
         curItem = tree.focus()
@@ -602,6 +614,11 @@ class ViewSpecificMuseumPage(tk.Frame):
             
         cursor.close()
         
+        next_page = self.controller.get_page(MuseumReviewPage)
+        
+        next_page.comment.delete('1.0',END)
+        next_page.rating.set(None)
+        
         self.controller.show_frame(MuseumReviewPage)
     
     def link_tree(self,event):
@@ -677,9 +694,8 @@ class MuseumReviewPage(tk.Frame):
             information_entry_frame.pack(anchor='center', pady=20, padx=5)
             rating_label = tk.Label(information_entry_frame, text="Rating:", font=SMALL_FONT)
             rating_label.grid(row=0, column=0, sticky='e', pady=5, padx=5)
-            #rating_entry = tk.Entry(information_entry_frame)
-            #rating_entry.grid(row=0, column=1, sticky='w', pady=5, padx=5)
             var = tk.IntVar()
+            self.rating = var
             rating_star1 = tk.Radiobutton(information_entry_frame, variable = var, value = 1, text='1', highlightbackground='white')
             rating_star1.grid(row=0, column=1, sticky='w', pady=5)
             rating_star2 = tk.Radiobutton(information_entry_frame, variable = var, value = 2, text='2', highlightbackground='white')
@@ -693,16 +709,11 @@ class MuseumReviewPage(tk.Frame):
             
             comment_label = tk.Label(information_entry_frame, text="Comment:", font=SMALL_FONT)
             comment_label.grid(row=1, column=0, sticky='e', pady=5, padx=5)
-            # u022 is code for dot so that, the user's password is not visible
             comment = tk.Text(information_entry_frame, height = 5, width = 45)
+            self.comment = comment
             comment.grid(row = 1, column = 1, columnspan = 5, sticky = 'w', pady = 5, padx = 5)
-            #comment_entry = tk.Entry(information_entry_frame, show='\u2022')
-            #comment_entry.grid(row=1, column=1, sticky='w', pady=5, padx=5)
             create_review_button = tk.Button(self, text="Create Review", fg='blue',
                                      command=lambda: self.create_review(var, comment.get("1.0",'end-1c')))
-            #register_button = tk.Button(self, borderwidth=0, text="New User? Click here to register",
-            #                            font="Verdana 10 underline", fg='blue',
-            #                            command=lambda: controller.show_frame(RegistrationPage))
             back_button = tk.Button(self, text="Back", fg='blue', command=lambda: controller.show_frame(ViewSpecificMuseumPage))
             create_review_button.pack(pady=5, anchor='n')
             back_button.pack(pady=5, anchor='n')
