@@ -7,6 +7,7 @@ from tkinter import messagebox
 import mysql.connector
 from mysql.connector import errorcode
 import datetime
+import time
 
 
 LARGE_FONT = ("Verdana", 26, "underline")
@@ -116,16 +117,18 @@ class LoginPage(tk.Frame):
             self.user = user
             next_page = self.controller.get_page(SearchForMuseumPage)
             next_page.title['text'] += user
+            next_page.user = user
 
             controller.show_frame(SearchForMuseumPage)
             print("visitor logged in")
             #add login data here
-            ticket_page = self.controller.get_page(TicketHistoryPage)
-            ticket_page.populateTable(user)
+            
             self.controller.get_page(ReviewHistoryPage).populateTable(user)
             
 
 class SearchForMuseumPage(tk.Frame):
+
+    user = ''
 
     def __init__(self, parent, controller):
         self.controller = controller
@@ -150,8 +153,8 @@ class SearchForMuseumPage(tk.Frame):
         for i in range(0, len(museum_list)):
             museum_names.append(museum_list[i][0])
             i += 1
-
-        print(museum_names) #todo delete
+            
+        
         cursor.close()
 
         pickAMuseum = tk.Label(museum_select_frame, text="Pick a Museum: ")
@@ -161,7 +164,6 @@ class SearchForMuseumPage(tk.Frame):
 
         # on change dropdown value
         def change_dropdown(*args):
-            print(museums.get())
             museum_page = controller.get_page(ViewSpecificMuseumPage)
             museum_page.populateTable(museums.get())
             controller.show_frame(ViewSpecificMuseumPage)
@@ -171,7 +173,7 @@ class SearchForMuseumPage(tk.Frame):
 
         view_all_museums_button = tk.Button(self, text="View All Museums", fg='blue', command=lambda: controller.show_frame(ViewMuseumsPage))
 
-        my_tickets_button = tk.Button(self, text="My Tickets", fg='blue', command=lambda: controller.show_frame(TicketHistoryPage))
+        my_tickets_button = tk.Button(self, text="My Tickets", fg='blue', command=lambda: show_ticket_page())
 
         my_reviews_button = tk.Button(self, text="My Reviews", fg='blue', command=lambda: controller.show_frame(ReviewHistoryPage))
 
@@ -182,6 +184,10 @@ class SearchForMuseumPage(tk.Frame):
         my_tickets_button.pack(pady=5, anchor='n')
         my_reviews_button.pack(pady=5, anchor='n')
         manage_account_button.pack(pady=5, anchor='n')
+        
+        def show_ticket_page():
+            self.controller.get_page(TicketHistoryPage).populateTable(self.user)
+            self.controller.show_frame(TicketHistoryPage)
 
 class RegistrationPage(tk.Frame):
 
@@ -261,8 +267,8 @@ def create_account(email, pwd, credit_card_num, exp_date, security_code):
         messagebox.showerror("Error","Invalid expiration date")
         return
         
-    month = date.get()[:2]
-    year = date.get()[3:]
+    month = date[:2]
+    year = date[3:]
     
     query = ("""INSERT INTO visitor (email, password, credit_card_num,
             expiration_month, expiration_year, credit_card_security_num)
@@ -327,7 +333,6 @@ class ViewMuseumsPage(tk.Frame):
         museum = tree.item(curItem)['text']
         #Use this for the sql for the next page
         if museum != '':
-            print (museum)
             museum_page = controller.get_page(ViewSpecificMuseumPage)
             museum_page.populateTable(museum)
             controller.show_frame(ViewSpecificMuseumPage)
@@ -362,6 +367,7 @@ class TicketHistoryPage(tk.Frame):
         
     #must be called from user login page at login
     def populateTable(self, username):
+        self.tree.delete(*self.tree.get_children())
         num = 0
         self.sqlQuery(username)
         for museum in self.museum_list:
@@ -369,6 +375,11 @@ class TicketHistoryPage(tk.Frame):
             num+=1
                     
     def sqlQuery(self, username):
+        
+        self.museum_list = []
+        self.time_list = []
+        self.price_list = []
+        
         cursor = cnx.cursor()
 
         query = ("""SELECT museum_name, purchase_timestamp, price
@@ -379,7 +390,6 @@ class TicketHistoryPage(tk.Frame):
         
 
         for (museum_name, time, price) in cursor:
-            print(museum_name)
             self.museum_list.append(museum_name)
             self.time_list.append(time)
             self.price_list.append(price)
@@ -450,6 +460,8 @@ class ViewSpecificMuseumPage(tk.Frame):
     exhibit_list = []
     year_list = []
     link_list = []
+    museum = ''
+    price = ''
 
     def __init__(self, parent, controller):
             tk.Frame.__init__(self, parent)
@@ -460,6 +472,8 @@ class ViewSpecificMuseumPage(tk.Frame):
             main_frame = tk.Frame(self, pady=10)
             main_frame.pack(anchor='center', pady=0, padx=5)
             
+            self.controller = controller
+            
             self.tree = ttk.Treeview(main_frame)
 
             self.tree['columns'] = ('year','url')
@@ -468,13 +482,12 @@ class ViewSpecificMuseumPage(tk.Frame):
             self.tree.column('url', width=200, anchor='e')
             self.tree.heading('#0', text='Exhibit')
             self.tree.heading('year', text='Year')
-            self.tree.heading('url', text='Link to Exhibit')
+            self.tree.heading('url', text='Link to Exhibit (Double Click)')
+            self.tree.bind("<Double-Button-1>", self.link_tree)
             self.tree.pack()
-            
-            #self.populateTable('CCCB')
 
             purchase_ticket_button = tk.Button(self, text="Purchase Ticket", fg='blue',
-                                     command=lambda: controller.show_frame(ViewAllMuseumsPage))
+                                     command=lambda: self.purchase_ticket())
             review_museum_button = tk.Button(self, borderwidth=0, text="Review Museum", fg='blue',
                                         command=lambda: controller.show_frame(MyTicketsPage))
             view_other_reviews_button = tk.Button(self, borderwidth=0, text="View Others' Reviews", fg='blue',
@@ -492,6 +505,7 @@ class ViewSpecificMuseumPage(tk.Frame):
     def populateTable(self, museum):
         num = 0
         self.title['text'] = museum
+        self.museum = museum
         self.sqlQuery(museum)
         for exhibit in self.exhibit_list:
             self.tree.insert('', 'end', text=exhibit, values=(self.year_list[num], self.link_list[num]))
@@ -506,14 +520,54 @@ class ViewSpecificMuseumPage(tk.Frame):
 
         cursor.execute(query)
 
-
         for (exhibit, year, link) in cursor:
             self.exhibit_list.append(exhibit)
             self.year_list.append(year)
             self.link_list.append(link)
+        
+        query2 = ("""SELECT ticket_price
+                    FROM museum
+                    WHERE museum_name = '{0}'""".format(museum_name))
+                    
+        cursor.execute(query2)
+        
+        for (price) in cursor:
+            self.title['text'] += ' - $' + price[0]
+            self.price = price[0]
 
 
         cursor.close()
+    
+    def purchase_ticket(self):
+        
+        user = self.controller.get_page(LoginPage).user
+    
+        cursor = cnx.cursor()
+
+        query = ("""INSERT INTO ticket (email, museum_name, price, purchase_timestamp)
+            VALUES ('{}', '{}', '{}', '{}')""".format(user, self.museum, self.price, datetime.datetime.now()))
+                    
+
+        try:
+            cursor.execute(query)
+            cnx.commit()
+            cursor.close()
+        except:
+            messagebox.showinfo("Purchase declined", "You already own a ticket for the {}.".format(self.museum))
+            cursor.close()
+            return
+            
+            
+        messagebox.showinfo("Purchase accepted", "Thank you for purchasing a ticket for the {}! Please check your email for more info.".format(self.museum))
+    
+    def link_tree(self,event):
+        cur_item = self.tree.focus()
+        url = self.tree.item(cur_item)['values'][1]
+
+        #for opening the link in browser
+        import webbrowser
+        webbrowser.open('{}'.format(url))
+        #do whatever you want    
 
 app = BMTRSApp()
 #tkinter functionality keeps app running
