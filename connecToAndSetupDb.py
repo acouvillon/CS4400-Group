@@ -51,6 +51,7 @@ TABLES['museum'] = (
     "CREATE TABLE `museum` ("
     "`museum_name` VARCHAR(100) NOT NULL,"
     "`curator_email` VARCHAR(100),"
+    "`ticket_price` VARCHAR(140) NULL,"
     "PRIMARY KEY (`museum_name`),"
     "CONSTRAINT `FK_email` FOREIGN KEY (`curator_email`)"
     "REFERENCES `visitor` (`email`) ON DELETE CASCADE"
@@ -131,7 +132,7 @@ add_admin = ("INSERT INTO admin_user "
 add_visitor = ("INSERT INTO visitor "
                    "VALUES (%s, %s, %s, %s, %s, %s)")
 add_museum = ("INSERT INTO museum "
-                  "VALUES(%s, %s)")
+                  "VALUES(%s, %s, %s)")
 add_curator_request = ("INSERT INTO curator_request "
                            "VALUES (%s, %s)")
 add_review = ("INSERT INTO review "
@@ -179,13 +180,13 @@ cursor.execute(add_visitor, ('abc', 'abc', '123', 1, '2033', 222))
 #--------------------------MUSEUM DATA-----------------------------------
 # museum name, curator email (optional)
 data_museum = []
-data_museum.append(('MACBA', 'zoe@gatech.edu'))
-data_museum.append(('Picasso Museum', None))
-data_museum.append(('CCCB', 'helen@gatech.edu'))
-data_museum.append(('Miro Museum', 'themuseumguy@gmail.com'))
-data_museum.append(('Muhba Museum', 'themuseumguy@gmail.com'))
-data_museum.append(('Catalunya Museum', None))
-data_museum.append(('Can Framis Museum', None))
+data_museum.append(('MACBA', 'zoe@gatech.edu', '5'))
+data_museum.append(('Picasso Museum', None, '10'))
+data_museum.append(('CCCB', 'helen@gatech.edu', '4'))
+data_museum.append(('Miro Museum', 'themuseumguy@gmail.com', '5'))
+data_museum.append(('Muhba Museum', 'themuseumguy@gmail.com', '15'))
+data_museum.append(('Catalunya Museum', None, '12'))
+data_museum.append(('Can Framis Museum', None, '11'))
 for v in range(len(data_museum)):
     cursor.execute(add_museum, data_museum[v])
     print("museum added...")
