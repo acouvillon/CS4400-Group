@@ -37,7 +37,7 @@ class BMTRSApp(tk.Tk):
         main_window.grid_columnconfigure(0, weight=1)
 
         self.frames ={}
-        for F in {LoginPage, RegistrationPage, SearchForMuseumPage, ViewMuseumsPage, TicketHistoryPage, ReviewHistoryPage, ViewSpecificMuseumPage, ManageAccountPage}:
+        for F in {LoginPage, RegistrationPage, SearchForMuseumPage, ViewMuseumsPage, TicketHistoryPage, ReviewHistoryPage, ViewSpecificMuseumPage, ManageAccountPage, MuseumReviewPage}:
             frame = F(main_window, self)
             self.frames[F] = frame
             #sticky alignment + stretch - so it aligns everything to all sides of window
@@ -117,7 +117,7 @@ class LoginPage(tk.Frame):
             user = username.get()
             self.user = user
             next_page = self.controller.get_page(SearchForMuseumPage)
-            next_page.title['text'] += user
+            next_page.title['text'] = "Welcome, " + user
             next_page.user = user
 
             controller.show_frame(SearchForMuseumPage)
@@ -247,17 +247,16 @@ class RegistrationPage(tk.Frame):
         black_line=Frame(self, height=1, width=500, bg="black")
         black_line.pack(pady=20)
         create_account_button = tk.Button(self, text="Create Account", fg='blue',
-                                          command=lambda: create_account(email_text, pwd_text, credit_card_text, exp_date_text, sec_code_text))
+                                          command=lambda: create_account(email_text, pwd_text, credit_card_text, exp_date_text, sec_code_text, controller))
         back_button = tk.Button(self, text="Back", fg='blue', command=lambda: controller.show_frame(LoginPage))
         create_account_button.pack(pady=5, anchor='n')
         back_button.pack(pady=5, anchor='n')
 
 #todo - implement this function
-def create_account(email, pwd, credit_card_num, exp_date, security_code):
+def create_account(email, pwd, credit_card_num, exp_date, security_code, controller):
     cursor = cnx.cursor()
     
     date = exp_date.get()
-    
     
             
     if len(email.get())==0 or len(pwd.get())==0 or len(credit_card_num.get())==0 or len(exp_date.get())==0 or len(security_code.get())==0:
@@ -273,10 +272,19 @@ def create_account(email, pwd, credit_card_num, exp_date, security_code):
     
     query = ("""INSERT INTO visitor (email, password, credit_card_num,
             expiration_month, expiration_year, credit_card_security_num)
-            VALUES ('{}', '{}', '{}', {}, '{}', {})""".format(email.get(), pwd.get(), credit_card_num.get(), month, year, security_code.get()))
-            
-    cursor.execute(query)
-    cnx.commit()
+            VALUES (%s, %s, %s, %s, %s, %s)""")
+    values = (email.get(), pwd.get(), credit_card_num.get(), month, year, security_code.get())
+    
+    # cursor.execute(query, values)
+    # cnx.commit()
+    # controller.show_frame(LoginPage)
+    
+    try:
+        cursor.execute(query, values)
+        cnx.commit()
+        controller.show_frame(LoginPage)
+    except:
+        messagebox.showerror("Error","Account already exists.")
     cursor.close()
 
 def entryFormattingForCreditCardNumber(entry):
@@ -494,7 +502,7 @@ class ViewSpecificMuseumPage(tk.Frame):
             purchase_ticket_button = tk.Button(self, text="Purchase Ticket", fg='blue',
                                      command=lambda: self.purchase_ticket())
             review_museum_button = tk.Button(self, borderwidth=0, text="Review Museum", fg='blue',
-                                        command=lambda: controller.show_frame(MyTicketsPage))
+                                        command=lambda: self.create_review())
             view_other_reviews_button = tk.Button(self, borderwidth=0, text="View Others' Reviews", fg='blue',
                                         command=lambda: controller.show_frame(MyReviewsPage))
             back_button = tk.Button(self, borderwidth=0, text="Back", fg='blue',
@@ -565,6 +573,37 @@ class ViewSpecificMuseumPage(tk.Frame):
             
         messagebox.showinfo("Purchase accepted", "Thank you for purchasing a ticket for the {}! Please check your email for more info.".format(self.museum))
     
+    def create_review(self):
+    
+        user = self.controller.get_page(LoginPage).user
+        
+        cursor = cnx.cursor()
+
+        ticket_query = ("""SELECT *
+                    FROM ticket
+                    WHERE email = '{}' AND museum_name = '{}'""".format(user, self.museum))
+
+        cursor.execute(ticket_query)
+        
+        if cursor.fetchone() == None:
+            messagebox.showerror("Error","You cannot leave a review without purchasing a ticket for this museum first.")
+            cursor.close()
+            return
+        
+        review_query = ("""SELECT *
+                        FROM review
+                        WHERE email = '{}' AND museum_name = '{}'""".format(user, self.museum))
+        cursor.execute(review_query)
+        
+        if cursor.fetchone() != None:
+            messagebox.showerror("Error","You have already left a review for this museum.")
+            cursor.close()
+            return
+            
+        cursor.close()
+        
+        self.controller.show_frame(MuseumReviewPage)
+    
     def link_tree(self,event):
         cur_item = self.tree.focus()
         url = self.tree.item(cur_item)['values'][1]
@@ -624,6 +663,69 @@ class ManageAccountPage(tk.Frame):
             
             self.logout(controller)
             messagebox.showinfo("Account Deleted", "Account deleted.")
+            
+class MuseumReviewPage(tk.Frame):
+
+    def __init__(self, parent, controller):
+            tk.Frame.__init__(self, parent)
+            self.controller = controller
+            title = tk.Label(self, text="Create A Review", font=LARGE_FONT)
+            title.pack(pady=10, padx=10)
+            black_line=Frame(self, height=1, width=500, bg="black")
+            black_line.pack()
+            information_entry_frame = tk.Frame(self, pady=10)
+            information_entry_frame.pack(anchor='center', pady=20, padx=5)
+            rating_label = tk.Label(information_entry_frame, text="Rating:", font=SMALL_FONT)
+            rating_label.grid(row=0, column=0, sticky='e', pady=5, padx=5)
+            #rating_entry = tk.Entry(information_entry_frame)
+            #rating_entry.grid(row=0, column=1, sticky='w', pady=5, padx=5)
+            var = tk.IntVar()
+            rating_star1 = tk.Radiobutton(information_entry_frame, variable = var, value = 1, text='1', highlightbackground='white')
+            rating_star1.grid(row=0, column=1, sticky='w', pady=5)
+            rating_star2 = tk.Radiobutton(information_entry_frame, variable = var, value = 2, text='2', highlightbackground='white')
+            rating_star2.grid(row=0, column=2, sticky='w', pady=5)
+            rating_star3 = tk.Radiobutton(information_entry_frame, variable = var, value = 3, text='3', highlightbackground='white')
+            rating_star3.grid(row=0, column=3, sticky='w', pady=5)
+            rating_star4 = tk.Radiobutton(information_entry_frame, variable = var, value = 4, text='4', highlightbackground='white')
+            rating_star4.grid(row=0, column=4, sticky='w', pady=5)
+            rating_star5 = tk.Radiobutton(information_entry_frame, variable = var, value = 5, text='5', highlightbackground='white')
+            rating_star5.grid(row=0, column=5, sticky='w', pady=5)
+            
+            comment_label = tk.Label(information_entry_frame, text="Comment:", font=SMALL_FONT)
+            comment_label.grid(row=1, column=0, sticky='e', pady=5, padx=5)
+            # u022 is code for dot so that, the user's password is not visible
+            comment = tk.Text(information_entry_frame, height = 5, width = 45)
+            comment.grid(row = 1, column = 1, columnspan = 5, sticky = 'w', pady = 5, padx = 5)
+            #comment_entry = tk.Entry(information_entry_frame, show='\u2022')
+            #comment_entry.grid(row=1, column=1, sticky='w', pady=5, padx=5)
+            create_review_button = tk.Button(self, text="Create Review", fg='blue',
+                                     command=lambda: self.create_review(var, comment.get("1.0",'end-1c')))
+            #register_button = tk.Button(self, borderwidth=0, text="New User? Click here to register",
+            #                            font="Verdana 10 underline", fg='blue',
+            #                            command=lambda: controller.show_frame(RegistrationPage))
+            back_button = tk.Button(self, text="Back", fg='blue', command=lambda: controller.show_frame(ViewSpecificMuseumPage))
+            create_review_button.pack(pady=5, anchor='n')
+            back_button.pack(pady=5, anchor='n')
+
+    def create_review(self, rating, comment):
+        user = self.controller.get_page(LoginPage).user
+        museum = self.controller.get_page(ViewSpecificMuseumPage).museum
+        
+        cursor = cnx.cursor()
+        print("rating: " + str(rating.get()))
+        print(comment)
+        
+        
+
+        query = ("""INSERT INTO review (email, museum_name, comment, rating)
+                    VALUES (%s, %s, %s, %s)""")
+                    
+        values = (user, museum, comment, rating.get())
+                    
+        cursor.execute(query, values)
+        cnx.commit()
+        cursor.close()
+        self.controller.show_frame(SearchForMuseumPage)
         
 app = BMTRSApp()
 #tkinter functionality keeps app running
