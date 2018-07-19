@@ -96,7 +96,7 @@ TABLES['ticket'] = (
     "  `purchase_timestamp` DATETIME,"
     "  PRIMARY KEY (`email`,`museum_name`),"
     "  CONSTRAINT `FK_email_visitor` FOREIGN KEY (`email`)"
-    "     REFERENCES `visitor` (`email`),"
+    "     REFERENCES `visitor` (`email`) ON DELETE CASCADE,"
     "  CONSTRAINT `FK_mu_name` FOREIGN KEY (`museum_name`)"
     "     REFERENCES `museum` (`museum_name`) ON DELETE CASCADE"
     ") ENGINE=InnoDB")
