@@ -37,7 +37,7 @@ class BMTRSApp(tk.Tk):
         main_window.grid_columnconfigure(0, weight=1)
 
         self.frames ={}
-        for F in {LoginPage, RegistrationPage, SearchForMuseumPage, ViewMuseumsPage, TicketHistoryPage, ReviewHistoryPage, ViewSpecificMuseumPage, ManageAccountPage, MuseumReviewPage}:
+        for F in {LoginPage, RegistrationPage, SearchForMuseumPage, ViewMuseumsPage, TicketHistoryPage, ReviewHistoryPage, ViewSpecificMuseumPage, ManageAccountPage, MuseumReviewPage, ViewAllMuseumReviewsPage}:
             frame = F(main_window, self)
             self.frames[F] = frame
             #sticky alignment + stretch - so it aligns everything to all sides of window
@@ -516,7 +516,7 @@ class ViewSpecificMuseumPage(tk.Frame):
             review_museum_button = tk.Button(self, borderwidth=0, text="Review Museum", fg='blue',
                                         command=lambda: self.create_review())
             view_other_reviews_button = tk.Button(self, borderwidth=0, text="View Others' Reviews", fg='blue',
-                                        command=lambda: controller.show_frame(MyReviewsPage))
+                                        command=lambda: self.show_all_reviews())
             back_button = tk.Button(self, borderwidth=0, text="Back", fg='blue',
                                         command=lambda: controller.show_frame(SearchForMuseumPage))
 
@@ -621,6 +621,10 @@ class ViewSpecificMuseumPage(tk.Frame):
         
         self.controller.show_frame(MuseumReviewPage)
     
+    def show_all_reviews(self):
+        self.controller.get_page(ViewAllMuseumReviewsPage).populateTable(self.museum)
+        self.controller.show_frame(ViewAllMuseumReviewsPage)
+    
     def link_tree(self,event):
         cur_item = self.tree.focus()
         url = self.tree.item(cur_item)['values'][1]
@@ -723,10 +727,6 @@ class MuseumReviewPage(tk.Frame):
         museum = self.controller.get_page(ViewSpecificMuseumPage).museum
         
         cursor = cnx.cursor()
-        print("rating: " + str(rating.get()))
-        print(comment)
-        
-        
 
         query = ("""INSERT INTO review (email, museum_name, comment, rating)
                     VALUES (%s, %s, %s, %s)""")
@@ -738,6 +738,66 @@ class MuseumReviewPage(tk.Frame):
         cursor.close()
         self.controller.show_frame(SearchForMuseumPage)
         
+class ViewAllMuseumReviewsPage(tk.Frame):
+
+    def __init__(self, parent, controller):
+            tk.Frame.__init__(self, parent)
+            title = tk.Label(self, text="All Reviews", font=LARGE_FONT)
+            title.pack(pady=10, padx=10)
+            black_line=Frame(self, height=1, width=500, bg="black")
+            black_line.pack()
+            main_frame = tk.Frame(self, pady=10)
+            main_frame.pack(anchor='center', pady=0, padx=5)
+            # review_list = getReviews()
+
+            tree = ttk.Treeview(main_frame)
+            self.tree = tree
+            # num = 0
+            # for review in review_list:
+                # tree.insert('', 'end', text=review, values=('rating'))
+                # num+=1
+
+            tree['columns'] = ('rating')
+            tree.column('#0', width=300, anchor='w')
+            tree.column('rating', width=100, anchor='center')
+            tree.heading('#0', text='Review')
+            tree.heading('rating', text='Rating')
+            tree.pack()
+
+            back_button = tk.Button(self, borderwidth=0, text="Back", fg='blue',
+                                        command=lambda: controller.show_frame(ViewSpecificMuseumPage))
+            back_button.pack(pady=0, anchor='n')
+            
+    def populateTable(self, museum):
+        self.tree.delete(*self.tree.get_children())
+        cursor = cnx.cursor()
+
+        query = ("""SELECT comment, rating
+                    FROM review
+                    WHERE museum_name = '{}'""".format(museum))
+
+        cursor.execute(query)
+        
+        comment_list = []
+        rating_list = []
+
+        for (comment, rating) in cursor:
+            comment_list.append(comment)
+            rating_list.append(rating)
+	
+        cursor.close()
+        
+        num = 0
+        
+        for comment in comment_list:
+            if (rating_list[num] != None):
+                self.tree.insert('', 'end', text=comment, values=(rating_list[num]))
+            else:
+                self.tree.insert('', 'end', text=comment, values=('-'))
+            num+=1
+        
+        
+
 app = BMTRSApp()
 #tkinter functionality keeps app running
 app.mainloop()
