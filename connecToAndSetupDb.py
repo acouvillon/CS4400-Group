@@ -5,10 +5,10 @@ import mysql.connector
 from mysql.connector import errorcode
 
 config = {
-  'user': 'root',
-  'password': 'rootuserpassword',
-  'database': 'bmtrsdb',
-  'raise_on_warnings': True,
+    'user': 'root',
+    'password': 'rootuserpassword',
+    'database': 'bmtrsdb',
+    'raise_on_warnings': True,
 }
 
 cnx = mysql.connector.connect(**config)
@@ -23,7 +23,7 @@ def create_database(cursor):
         exit(1)
 
 try:
-    cnx.database = DB_NAME  
+    cnx.database = DB_NAME
 except mysql.connector.Error as err:
     if err.errno == errorcode.ER_BAD_DB_ERROR:
         create_database(cursor)
@@ -128,19 +128,19 @@ for name, ddl in TABLES.items():
         print("OK")
 
 add_admin = ("INSERT INTO admin_user "
-               "VALUES (%s, %s)")
+             "VALUES (%s, %s)")
 add_visitor = ("INSERT INTO visitor "
-                   "VALUES (%s, %s, %s, %s, %s, %s)")
+               "VALUES (%s, %s, %s, %s, %s, %s)")
 add_museum = ("INSERT INTO museum "
-                  "VALUES(%s, %s, %s)")
+              "VALUES(%s, %s, %s)")
 add_curator_request = ("INSERT INTO curator_request "
-                           "VALUES (%s, %s)")
+                       "VALUES (%s, %s)")
 add_review = ("INSERT INTO review "
-                  "VALUES(%s, %s, %s, %s)")
+              "VALUES(%s, %s, %s, %s)")
 add_ticket = ("INSERT INTO ticket "
-                  "VALUES (%s, %s, %s, %s)")
+              "VALUES (%s, %s, %s, %s)")
 add_exhibit = ("INSERT INTO exhibit "
-                   "VALUES (%s, %s, %s, %s)")
+               "VALUES (%s, %s, %s, %s)")
 #---------------------------ADMIN DATA----------------------------------
 data_admin = ('alex@gatech.edu', 'iamadmin')
 #Insert new admin
@@ -178,7 +178,7 @@ for v in range(len(data_visitor)):
 cursor.execute(add_visitor, ('abc', 'abc', '123', 1, '2033', 222))
 
 #--------------------------MUSEUM DATA-----------------------------------
-# museum name, curator email (optional)
+# museum name, curator email (optional), price
 data_museum = []
 data_museum.append(('MACBA', 'zoe@gatech.edu', '5'))
 data_museum.append(('Picasso Museum', None, '10'))
@@ -196,6 +196,10 @@ for v in range(len(data_museum)):
 # email, museum name
 data_curator_request = []
 data_curator_request.append(('zoe@gatech.edu', 'Picasso Museum'))
+data_curator_request.append(('bobross@iliketopaint.com', 'Picasso Museum'))
+data_curator_request.append(('kristin@grapes.com', 'MACBA'))
+data_curator_request.append(('bruce@thetrickster.gov', 'Catalunya Museum'))
+
 for v in range(len(data_curator_request)):
     cursor.execute(add_curator_request, data_curator_request[v])
     print("curator_request added...")
@@ -207,6 +211,14 @@ data_review = []
 data_review.append(('zoe@gatech.edu', 'MACBA', 'Didn\'t get it', 1))
 data_review.append(('helen@gatech.edu', 'Picasso Museum', 'So many shapes!', 5))
 data_review.append(('helen@gatech.edu', 'CCCB', 'Scary, but cool', 3))
+data_review.append(('georgepburdell@gatech.edu', 'MACBA', 'Pretty cool modern stuff here but I like more traditional art.', 3))
+data_review.append(('daisha@unquenchablethirst.com', 'Miro Museum', 'Thought the Shipwrecked Species exhibit was really insightful. Wish they had more water fountains.', 4))
+data_review.append(('bobross@iliketopaint.com', 'Picasso Museum', 'Picasso was a really wonderful artist and this museum did a great job of showing his wonderful work.', 5))
+data_review.append(('sam@inthetank.org', 'Can Framis Museum', 'Museum seemed kinda cool but it was really hard to navigate with my tank. Museum employees weren\'t very helpful in helping me get around.', 2))
+data_review.append(('abby@deathstar.gov', 'Can Framis Museum', 'Exhibits seemed really insightful. I wish I spoke more Spanish...', 4))
+# test - data_review.append(('charlie@aol.net', 'MACBA', 'Lotsa great art for my insta page. Would definitely come here again.', 5))
+
+
 for v in range(len(data_review)):
     cursor.execute(add_review, data_review[v])
     print("review added...")
@@ -219,6 +231,13 @@ data_ticket = []
 data_ticket.append(('zoe@gatech.edu', 'MACBA', 5, '2018-05-20'))
 data_ticket.append(('helen@gatech.edu', 'Picasso Museum', 20, '2018-06-11'))
 data_ticket.append(('helen@gatech.edu', 'CCCB', 20, '2018-06-29'))
+data_ticket.append(('jake@grayshirt.net', 'Miro Museum', 7, '2016-05-25'))
+data_ticket.append(('georgepburdell@gatech.edu', 'MACBA', 6, '2017-08-15'))
+data_ticket.append(('daisha@unquenchablethirst.com', 'Miro Museum', 9, '2011-01-03'))
+data_ticket.append(('bobross@iliketopaint.com', 'Picasso Museum', 10, '2006-06-06'))
+data_ticket.append(('sam@inthetank.org', 'Can Framis Museum', 5, '1998-03-22'))
+data_ticket.append(('abby@deathstar.gov', 'Can Framis Museum', 5, '2007-04-15'))
+
 for v in range(len(data_ticket)):
     cursor.execute(add_ticket, data_ticket[v])
     print("ticket added...")
