@@ -370,7 +370,7 @@ class ViewMuseumsPage(tk.Frame):
         self.controller = controller
         title = tk.Label(self, text="All Museums", font=LARGE_FONT)
         title.pack(pady=10, padx=10)
-        black_line=Frame(self, height=1, width=500, bg="black")
+        black_line=Frame(self, height=1, width=500, bg="blue")
         black_line.pack(pady=20)
         main_frame = tk.Frame(self, pady=10)
         main_frame.pack(anchor='center', pady=0, padx=5)
@@ -381,12 +381,12 @@ class ViewMuseumsPage(tk.Frame):
         self.tree.heading('#0', text='Museum Name')
         self.tree.heading('rating', text='Average Rating')
         self.tree.pack()
-        select_button = tk.Button(self, text="Select", fg='black', command=lambda: self.select_press(self.tree, controller))
+        select_button = tk.Button(self, text="Select", fg='blue', command=lambda: self.select_press(self.tree, controller))
         select_button.pack(pady=5, anchor='n')
 
-        back_button = tk.Button(self, text="Back", fg='black', command=lambda: self.choose_view())
+        back_button = tk.Button(self, text="Back", fg='blue', command=lambda: self.choose_view())
         back_button.pack(pady=5, anchor='n')
-        black_line=Frame(self, height=1, width=500, bg="black")
+        black_line=Frame(self, height=1, width=500, bg="blue")
         black_line.pack(anchor='n', pady=20)
 
     def choose_view(self):
@@ -1459,7 +1459,9 @@ class MyMuseumsPage(tk.Frame):
         self.tree.heading('numExhibits', text='Exhibit Count')
         self.tree.heading('rating', text='Rating')
         self.tree.pack()
-
+        
+        select_button = tk.Button(self, text="Select", fg='blue', command=lambda: self.select_press(self.tree, controller))
+        select_button.pack(pady=5, anchor='n')
         back_button = tk.Button(self, text="Back", fg='blue',
                                 command=lambda: controller.show_frame(CuratorSearchForMuseumPage))
         back_button.pack(pady=5, anchor='n')
@@ -1500,6 +1502,19 @@ class MyMuseumsPage(tk.Frame):
                 self.tree.insert('', 'end', text=museum, values=(self.exhibit_count_list[num], '-'))
             num+=1
 
+    def select_press(self, tree, controller):
+        curItem = tree.focus()
+        museum = tree.item(curItem)['text']
+        #Use this for the sql for the next page
+        if museum != '':
+            if self.controller.get_page(LoginPage).isCurator:
+                museum_page = controller.get_page(CuratorViewSpecificMuseumPage)
+                museum_page.populateTable(museum)
+                controller.show_frame(CuratorViewSpecificMuseumPage)
+            else:
+                museum_page = controller.get_page(ViewSpecificMuseumPage)
+                museum_page.populateTable(museum)
+                controller.show_frame(ViewSpecificMuseumPage)
 
 #PAGE 1 - New Exhibit PAGE
 class NewExhibitPage(tk.Frame):
