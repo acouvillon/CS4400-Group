@@ -172,6 +172,9 @@ class CuratorSearchForMuseumPage(tk.Frame):
         self.museum_select_frame.pack(anchor='center', pady=20, padx=20, ipadx=20)
 
         self.update_museum_list()
+        
+        pickAMuseum = tk.Label(self.museum_select_frame, text="Pick a Museum: ")
+        pickAMuseum.grid(row=0, column=0, sticky='e', pady=5, padx=5)
 
         view_all_museums_button = tk.Button(self, text="View All Museums", fg='blue', command=lambda: show_museums_page())
 
@@ -221,6 +224,9 @@ class CuratorSearchForMuseumPage(tk.Frame):
             i += 1
         self.museums = StringVar()
         self.museums.set(museum_names[0]) # set the default option
+        
+        if self.popupMenu != None:
+            self.popupMenu.destroy()
         self.popupMenu = tk.OptionMenu(self.museum_select_frame, self.museums, *museum_names)
         self.popupMenu.grid(row=0, column=1, sticky='w', pady=5, padx=5)
         cursor.close()
@@ -801,6 +807,8 @@ class CuratorViewSpecificMuseumPage(tk.Frame):
         # todo - change this to New Exhibit form page
         add_exhibit_button = tk.Button(self, text="Add Exhibit", fg='blue',
                                        command=lambda: self.add_exhibit())
+        remove_exhibit_button = tk.Button(self, text="Remove Exhibit", fg='blue',
+                                       command=lambda: self.remove_exhibit(self.tree))
         back_button = tk.Button(self, text="Back", fg='blue',
                                 command=lambda: self.choose_view())
 
@@ -808,6 +816,7 @@ class CuratorViewSpecificMuseumPage(tk.Frame):
         review_museum_button.pack(pady=5, anchor='n')
         view_other_reviews_button.pack(pady=5, anchor='n')
         add_exhibit_button.pack(pady=5, anchor='n', expand=True)
+        remove_exhibit_button.pack(pady=5, anchor='n', expand=True)
         back_button.pack(pady=5, anchor='n')
         black_line=Frame(self, height=1, width=500, bg="black")
         black_line.pack(anchor='n', pady=20)
@@ -954,6 +963,34 @@ class CuratorViewSpecificMuseumPage(tk.Frame):
             return
         self.controller.get_page(NewExhibitPage).get_info(self.museum, user)
         self.controller.show_frame(NewExhibitPage)
+        
+    def remove_exhibit(self, tree):
+        curItem = tree.focus()
+        exhibit = tree.item(curItem)['text']
+        print(exhibit)
+        if exhibit == '':
+            return
+        cursor = cnx.cursor()
+        user = self.controller.get_page(LoginPage).user
+        q = ("SELECT COUNT(*) FROM museum "
+             "WHERE curator_email = '{email}' AND museum_name = '{mus}';").format(email=user, mus=self.museum)
+        cursor.execute(q)
+        count = cursor.fetchone()[0]
+
+        if count == 0:
+            messagebox.showinfo("Exhibit Cannot be Added", "You are not a curator for the {museum}. "
+                                                           "You can only remove an exhibit to a museum you are a curator for.".format(museum=self.museum))
+            return
+            
+        delete_q = ("""DELETE FROM exhibit
+                      WHERE exhibit_name = %s""")
+                      
+        values = (exhibit,)
+                      
+        cursor.execute(delete_q, values)
+        cnx.commit()
+        cursor.close()
+        self.populateTable(self.museum)
 
 class ManageAccountPage(tk.Frame):
 
@@ -1183,8 +1220,6 @@ class ViewAllMuseumReviewsPage(tk.Frame):
 
 class SearchForMuseumPage(tk.Frame):
 
-
-
     user = ''
 
     def __init__(self, parent, controller):
@@ -1197,6 +1232,7 @@ class SearchForMuseumPage(tk.Frame):
         museum_select_frame = tk.Frame(self, borderwidth=5, relief='groove')
         museum_select_frame.pack(anchor='center', pady=20, padx=20, ipadx=20)
         self.museum_select_frame = museum_select_frame
+        
 
         museums = StringVar()
         museums.set('Picasso Museum') # set the default option
@@ -1219,21 +1255,10 @@ class SearchForMuseumPage(tk.Frame):
         popupMenu = tk.OptionMenu(museum_select_frame, museums, *museum_names)
         pickAMuseum.grid(row=0, column=0, sticky='e', pady=5, padx=5)
         popupMenu.grid(row=0, column=1, sticky='w', pady=5, padx=5)
+        
+        self.popupMenu = popupMenu
+        self.update_museum_list()
 
-        # on change dropdown value
-        def change_dropdown(*args):
-            isCurator = controller.get_page(LoginPage).isCurator
-            if isCurator:
-                museum_page = controller.get_page(CuratorViewSpecificMuseumPage)
-                museum_page.populateTable(museums.get())
-                controller.show_frame(CuratorViewSpecificMuseumPage)
-            else:
-                museum_page = controller.get_page(ViewSpecificMuseumPage)
-                museum_page.populateTable(museums.get())
-                controller.show_frame(ViewSpecificMuseumPage)
-
-        # link function to change dropdown
-        museums.trace('w', change_dropdown)
 
         view_all_museums_button = tk.Button(self, text="View All Museums", fg='blue', command=lambda: show_museums_page())
 
@@ -1279,9 +1304,27 @@ class SearchForMuseumPage(tk.Frame):
         self.museums.set(museum_names[0]) # set the default option
         print("HEREEEE") #todo delete
         print(museum_names) #todo - delete
+        if self.popupMenu != None:
+            self.popupMenu.destroy()
         self.popupMenu = tk.OptionMenu(self.museum_select_frame, self.museums, *museum_names)
         self.popupMenu.grid(row=0, column=1, sticky='w', pady=5, padx=5)
         cursor.close()
+        
+        # on change dropdown value
+        def change_dropdown(*args):
+            controller = self.controller
+            isCurator = controller.get_page(LoginPage).isCurator
+            if isCurator:
+                museum_page = controller.get_page(CuratorViewSpecificMuseumPage)
+                museum_page.populateTable(self.museums.get())
+                controller.show_frame(CuratorViewSpecificMuseumPage)
+            else:
+                museum_page = controller.get_page(ViewSpecificMuseumPage)
+                museum_page.populateTable(self.museums.get())
+                controller.show_frame(ViewSpecificMuseumPage)
+
+        # link function to change dropdown
+        self.museums.trace('w', change_dropdown)
 
 class CuratorRequestPage(tk.Frame):
 
@@ -1507,10 +1550,11 @@ class NewExhibitPage(tk.Frame):
         cursor = cnx.cursor()
 
         query = ("INSERT INTO exhibit "
-                 "VALUES ('{museum}', '{exhibit}', '{year}', '{url}' );").format(museum=self.museum, exhibit=exhibit.get(),
-                                                                                 year=year.get(), url=url.get())
+                 "VALUES (%s, %s, %s, %s);")
+                 
+        values = (self.museum, exhibit.get(), year.get(), url.get())
         try:
-            cursor.execute(query)
+            cursor.execute(query, values)
             cnx.commit()
             messagebox.showinfo("Exhibit created", "Exhibit was successfully added.")
         except:
@@ -1705,10 +1749,10 @@ class DeleteMuseumFormPage(tk.Frame):
         museum_names = []
         pickAMuseum = tk.Label(self.museum_select_frame, text="Pick a Museum: ")
         pickAMuseum.grid(row=0, column=0, sticky='e', pady=5, padx=5)
-        self.museums = StringVar()
-        self.popupMenu = tk.OptionMenu(self.museum_select_frame, self.museums, *museum_names)
-        self.popupMenu.grid(row=0, column=1, sticky='w', pady=5, padx=5)
-        self.update_museum_list()
+        # self.museums = StringVar()
+        # self.popupMenu = tk.OptionMenu(self.museum_select_frame, self.museums, *museum_names)
+        # self.popupMenu.grid(row=0, column=1, sticky='w', pady=5, padx=5)
+        # self.update_museum_list()
 
         delete_museum_button = tk.Button(self, text="Delete Museum", fg='blue',
                                          command=lambda: self.delete_museum())
@@ -1751,8 +1795,11 @@ class DeleteMuseumFormPage(tk.Frame):
             i += 1
         self.museums = StringVar()
         self.museums.set(museum_names[0]) # set the default option
+        if self.popupMenu != None:
+            self.popupMenu.destroy()
         self.popupMenu = tk.OptionMenu(self.museum_select_frame, self.museums, *museum_names)
-        #self.popupMenu.grid(row=0, column=1, sticky='w', pady=5, padx=5)
+        self.popupMenu.grid(row=0, column=1, sticky='w', pady=5, padx=5)
+        # self.popupMenu['menu'].delete(0, 'end')
         cursor.close()
 
         # on change dropdown value
