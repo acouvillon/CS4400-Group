@@ -92,7 +92,8 @@ class LoginPage(tk.Frame):
         login_button.pack(anchor='n', expand=True)
         black_line=Frame(self, height=1, width=500, bg="black")
         black_line.pack(anchor='n')
-        register_button.pack(pady=0, anchor='n')
+
+        register_button.pack(pady=10, anchor='n')
 
 
     # Checks database, validates credentials and allows access to specific museum page
@@ -104,25 +105,27 @@ class LoginPage(tk.Frame):
 
         cursor = cnx.cursor()
         q = ("SELECT COUNT(*) FROM visitor "
-             "WHERE email = '{username}';").format(username=username.get())
-        cursor.execute(q)
+             "WHERE email = %s;")
+
+        cursor.execute(q, (username.get(),))
         c = cursor.fetchone()[0]
         qu = ("SELECT COUNT(*) FROM admin_user "
-              "WHERE email = '{username}';").format(username=username.get())
-        cursor.execute(qu)
+              "WHERE email = %s;")
+        cursor.execute(qu, (username.get(),))
         admin_count = cursor.fetchone()[0]
         if c == 0 and admin_count == 0:
             messagebox.showerror("Error", "User with that email does not exist.")
             return
 
         query = ("SELECT COUNT(*) FROM visitor "
-                 "WHERE email = '{username}' AND password = '{password}';").format(username=username.get(), password=pwd.get())
-        cursor.execute(query)
+                 "WHERE email = %s AND password = %s;")
+        values = (username.get(), pwd.get())
+        cursor.execute(query, values)
         count = cursor.fetchone()[0]
         if count == 0:
             query = ("SELECT COUNT(*) FROM admin_user "
-                     "WHERE email = '{username}' AND password = '{password}';").format(username=username.get(), password=pwd.get())
-            cursor.execute(query)
+                     "WHERE email = %s AND password = %s;")
+            cursor.execute(query, values)
             admin_count = cursor.fetchone()[0]
             if admin_count == 0:
                 messagebox.showerror("Error","Either username or password is incorrect")
@@ -133,8 +136,8 @@ class LoginPage(tk.Frame):
             user = username.get()
             self.user = user
             query = ("SELECT COUNT(*) FROM museum "
-                     "WHERE curator_email = '{username}';").format(username=user)
-            cursor.execute(query)
+                     "WHERE curator_email = %s;")
+            cursor.execute(query, (user, ))
             curator_count = cursor.fetchone()[0]
 
             if curator_count != 0:
@@ -172,7 +175,7 @@ class CuratorSearchForMuseumPage(tk.Frame):
         self.museum_select_frame.pack(anchor='center', pady=20, padx=20, ipadx=20)
 
         self.update_museum_list()
-        
+
         pickAMuseum = tk.Label(self.museum_select_frame, text="Pick a Museum: ")
         pickAMuseum.grid(row=0, column=0, sticky='e', pady=5, padx=5)
 
@@ -181,7 +184,7 @@ class CuratorSearchForMuseumPage(tk.Frame):
         my_tickets_button = tk.Button(self, text="My Tickets", fg='blue', command=lambda: show_ticket_page())
 
         my_reviews_button = tk.Button(self, text="My Reviews", fg='blue', command=lambda: show_reviews_page())
-        # todo - change page to My museums page
+
         my_museums_button = tk.Button(self, text="My Museums", fg='blue',
                                       command=lambda: show_my_museums_page())
         manage_account_button = tk.Button(self, text="Manage Account", fg='blue', command=lambda: controller.show_frame(ManageAccountPage))
@@ -224,7 +227,7 @@ class CuratorSearchForMuseumPage(tk.Frame):
             i += 1
         self.museums = StringVar()
         self.museums.set(museum_names[0]) # set the default option
-        
+
         if self.popupMenu != None:
             self.popupMenu.destroy()
         self.popupMenu = tk.OptionMenu(self.museum_select_frame, self.museums, *museum_names)
@@ -370,7 +373,7 @@ class ViewMuseumsPage(tk.Frame):
         self.controller = controller
         title = tk.Label(self, text="All Museums", font=LARGE_FONT)
         title.pack(pady=10, padx=10)
-        black_line=Frame(self, height=1, width=500, bg="blue")
+        black_line=Frame(self, height=1, width=500, bg="black")
         black_line.pack(pady=20)
         main_frame = tk.Frame(self, pady=10)
         main_frame.pack(anchor='center', pady=0, padx=5)
@@ -385,8 +388,8 @@ class ViewMuseumsPage(tk.Frame):
         select_button.pack(pady=5, anchor='n')
 
         back_button = tk.Button(self, text="Back", fg='blue', command=lambda: self.choose_view())
-        back_button.pack(pady=5, anchor='n')
-        black_line=Frame(self, height=1, width=500, bg="blue")
+        back_button.pack(padx=50, pady=10, anchor='w')
+        black_line=Frame(self, height=1, width=500, bg="black")
         black_line.pack(anchor='n', pady=20)
 
     def choose_view(self):
@@ -421,7 +424,7 @@ class ViewMuseumsPage(tk.Frame):
 
         for museum in museum_list:
             if (review_list[num] != None):
-                self.tree.insert('', 'end', text=museum, values=(review_list[num]))
+                self.tree.insert('', 'end', text=museum, values=(str(review_list[num])[0:3] + '/5'))
             else:
                 self.tree.insert('', 'end', text=museum, values=('-'))
             num+=1
@@ -468,8 +471,8 @@ class TicketHistoryPage(tk.Frame):
         self.tree.heading('date', text='Purchase Date')
         self.tree.heading('price', text='Price')
         self.tree.pack()
-        back_button = tk.Button(self, text="Back", fg='black', command=lambda: self.choose_view())
-        back_button.pack(pady=5, anchor='n')
+        back_button = tk.Button(self, text="Back", fg='blue', command=lambda: self.choose_view())
+        back_button.pack(padx=50, pady=20, anchor='w')
         black_line=Frame(self, height=1, width=500, bg="black")
         black_line.pack(anchor='n', pady=20)
         #self.populateTable('helen@gatech.edu')
@@ -501,9 +504,9 @@ class TicketHistoryPage(tk.Frame):
 
         query = ("""SELECT museum_name, purchase_timestamp, price
                     FROM ticket 
-                    WHERE email = '{0}'""".format(username))
+                    WHERE email = %s""")
 
-        cursor.execute(query)
+        cursor.execute(query, (username, ))
 
 
         for (museum_name, time, price) in cursor:
@@ -542,8 +545,8 @@ class ReviewHistoryPage(tk.Frame):
         self.tree.heading('review', text='Review')
         self.tree.heading('rating', text='Rating')
         self.tree.pack()
-        back_button = tk.Button(self, text="Back", fg='black', command=lambda: self.choose_view())
-        back_button.pack(pady=5, anchor='n')
+        back_button = tk.Button(self, text="Back", fg='blue', command=lambda: self.choose_view())
+        back_button.pack(padx=50, pady=20, anchor='w')
         # self.populateTable('helen@gatech.edu')
         black_line=Frame(self, height=1, width=500, bg="black")
         black_line.pack(anchor='n', pady=20)
@@ -575,9 +578,9 @@ class ReviewHistoryPage(tk.Frame):
 
         query = ("""SELECT museum_name, comment, rating
                     FROM review 
-                    WHERE email = '{0}'""".format(username))
+                    WHERE email = %s""")
 
-        cursor.execute(query)
+        cursor.execute(query, (username, ))
 
         for (museum_name, review, rating) in cursor:
             self.museum_list.append(museum_name)
@@ -633,7 +636,7 @@ class ViewSpecificMuseumPage(tk.Frame):
         purchase_ticket_button.pack(anchor='n', expand=True)
         review_museum_button.pack(pady=5, anchor='n')
         view_other_reviews_button.pack(pady=5, anchor='n')
-        back_button.pack(pady=5, anchor='n')
+        back_button.pack(padx=50, pady=20, anchor='w')
         black_line=Frame(self, height=1, width=500, bg="black")
         black_line.pack(anchor='n', pady=20)
 
@@ -667,9 +670,9 @@ class ViewSpecificMuseumPage(tk.Frame):
 
         query = ("""SELECT exhibit_name, year, url
                     FROM exhibit
-                    WHERE museum_name = '{0}'""".format(museum_name))
+                    WHERE museum_name = %s""")
 
-        cursor.execute(query)
+        cursor.execute(query, (museum_name, ))
 
         for (exhibit, year, link) in cursor:
             self.exhibit_list.append(exhibit)
@@ -678,9 +681,9 @@ class ViewSpecificMuseumPage(tk.Frame):
 
         query2 = ("""SELECT ticket_price
                     FROM museum
-                    WHERE museum_name = '{0}'""".format(museum_name))
+                    WHERE museum_name = %s""")
 
-        cursor.execute(query2)
+        cursor.execute(query2, (museum_name, ))
 
         for (price) in cursor:
             self.title['text'] += ' - $' + price[0]
@@ -696,11 +699,11 @@ class ViewSpecificMuseumPage(tk.Frame):
         cursor = cnx.cursor()
 
         query = ("""INSERT INTO ticket (email, museum_name, price, purchase_timestamp)
-            VALUES ('{}', '{}', '{}', '{}')""".format(user, self.museum, self.price, datetime.datetime.now()))
-
+            VALUES (%s, %s, %s, %s)""")
+        values = (user, self.museum, self.price, datetime.datetime.now())
 
         try:
-            cursor.execute(query)
+            cursor.execute(query, values)
             cnx.commit()
             cursor.close()
         except:
@@ -719,9 +722,9 @@ class ViewSpecificMuseumPage(tk.Frame):
 
         ticket_query = ("""SELECT *
                     FROM ticket
-                    WHERE email = '{}' AND museum_name = '{}'""".format(user, self.museum))
-
-        cursor.execute(ticket_query)
+                    WHERE email = %s AND museum_name = %s""")
+        values = (user, self.museum)
+        cursor.execute(ticket_query, values)
 
         if cursor.fetchone() == None:
             messagebox.showerror("Error","You cannot leave a review without purchasing a ticket for this museum first.")
@@ -730,14 +733,15 @@ class ViewSpecificMuseumPage(tk.Frame):
 
         review_query = ("""SELECT comment, rating
                         FROM review
-                        WHERE email = '{}' AND museum_name = '{}'""".format(user, self.museum))
-        cursor.execute(review_query)
+                        WHERE email = %s AND museum_name = %s""")
+        values = (user, self.museum)
+        cursor.execute(review_query, values)
 
         if cursor.fetchone() != None:
             # messagebox.showerror("Error","You have already left a review for this museum.")
             next_page = self.controller.get_page(MuseumReviewPage)
             next_page.comment.delete('1.0',END)
-            cursor.execute(review_query)
+            cursor.execute(review_query, values)
             for (comment, rating) in cursor:
                 print(comment)
                 next_page.comment.insert(END, comment)
@@ -804,11 +808,11 @@ class CuratorViewSpecificMuseumPage(tk.Frame):
                                          command=lambda: self.create_review())
         view_other_reviews_button = tk.Button(self, text="View Others' Reviews", fg='blue',
                                               command=lambda: self.show_all_reviews())
-        # todo - change this to New Exhibit form page
+
         add_exhibit_button = tk.Button(self, text="Add Exhibit", fg='blue',
                                        command=lambda: self.add_exhibit())
         remove_exhibit_button = tk.Button(self, text="Remove Exhibit", fg='blue',
-                                       command=lambda: self.remove_exhibit(self.tree))
+                                          command=lambda: self.remove_exhibit(self.tree))
         back_button = tk.Button(self, text="Back", fg='blue',
                                 command=lambda: self.choose_view())
 
@@ -817,7 +821,7 @@ class CuratorViewSpecificMuseumPage(tk.Frame):
         view_other_reviews_button.pack(pady=5, anchor='n')
         add_exhibit_button.pack(pady=5, anchor='n', expand=True)
         remove_exhibit_button.pack(pady=5, anchor='n', expand=True)
-        back_button.pack(pady=5, anchor='n')
+        back_button.pack(padx=50, pady=20, anchor='w')
         black_line=Frame(self, height=1, width=500, bg="black")
         black_line.pack(anchor='n', pady=20)
 
@@ -848,9 +852,9 @@ class CuratorViewSpecificMuseumPage(tk.Frame):
 
         query = ("""SELECT exhibit_name, year, url
                     FROM exhibit
-                    WHERE museum_name = '{0}'""".format(museum_name))
+                    WHERE museum_name = %s""")
 
-        cursor.execute(query)
+        cursor.execute(query, (museum_name, ))
         self.exhibit_list = []
         self.year_list = []
         self.link_list = []
@@ -862,9 +866,9 @@ class CuratorViewSpecificMuseumPage(tk.Frame):
 
         query2 = ("""SELECT ticket_price
                     FROM museum
-                    WHERE museum_name = '{0}'""".format(museum_name))
+                    WHERE museum_name = %s""")
 
-        cursor.execute(query2)
+        cursor.execute(query2, (museum_name, ))
 
         for (price) in cursor:
             self.title['text'] += ' - $' + price[0]
@@ -880,11 +884,11 @@ class CuratorViewSpecificMuseumPage(tk.Frame):
         cursor = cnx.cursor()
 
         query = ("""INSERT INTO ticket (email, museum_name, price, purchase_timestamp)
-            VALUES ('{}', '{}', '{}', '{}')""".format(user, self.museum, self.price, datetime.datetime.now()))
-
+            VALUES (%s, %s, %s, %s)""")
+        values = (user, self.museum, self.price, datetime.datetime.now())
 
         try:
-            cursor.execute(query)
+            cursor.execute(query, values)
             cnx.commit()
             cursor.close()
         except:
@@ -903,9 +907,9 @@ class CuratorViewSpecificMuseumPage(tk.Frame):
 
         ticket_query = ("""SELECT *
                     FROM ticket
-                    WHERE email = '{}' AND museum_name = '{}'""".format(user, self.museum))
-
-        cursor.execute(ticket_query)
+                    WHERE email = %s AND museum_name = %s""")
+        values = (user, self.museum)
+        cursor.execute(ticket_query, values)
 
         if cursor.fetchone() == None:
             messagebox.showerror("Error","You cannot leave a review without purchasing a ticket for this museum first.")
@@ -952,6 +956,7 @@ class CuratorViewSpecificMuseumPage(tk.Frame):
     def add_exhibit(self):
         cursor = cnx.cursor()
         user = self.controller.get_page(LoginPage).user
+        #TODO - START FIXING FROM HERE
         q = ("SELECT COUNT(*) FROM museum "
              "WHERE curator_email = '{email}' AND museum_name = '{mus}';").format(email=user, mus=self.museum)
         cursor.execute(q)
@@ -963,7 +968,7 @@ class CuratorViewSpecificMuseumPage(tk.Frame):
             return
         self.controller.get_page(NewExhibitPage).get_info(self.museum, user)
         self.controller.show_frame(NewExhibitPage)
-        
+
     def remove_exhibit(self, tree):
         curItem = tree.focus()
         exhibit = tree.item(curItem)['text']
@@ -981,12 +986,12 @@ class CuratorViewSpecificMuseumPage(tk.Frame):
             messagebox.showinfo("Exhibit Cannot be Added", "You are not a curator for the {museum}. "
                                                            "You can only remove an exhibit to a museum you are a curator for.".format(museum=self.museum))
             return
-            
+
         delete_q = ("""DELETE FROM exhibit
                       WHERE exhibit_name = %s""")
-                      
+
         values = (exhibit,)
-                      
+
         cursor.execute(delete_q, values)
         cnx.commit()
         cursor.close()
@@ -1015,7 +1020,7 @@ class ManageAccountPage(tk.Frame):
         log_out_button.pack(pady=20, anchor='n')
         curator_request_button.pack(pady=5, anchor='n')
         delete_account_button.pack(pady=5, anchor='n')
-        back_button.pack(pady=5, anchor='n')
+        back_button.pack(padx=50, pady=20, anchor='w')
 
         black_line=Frame(self, height=1, width=500, bg="black")
         black_line.pack(anchor='n', pady=20)
@@ -1040,7 +1045,6 @@ class ManageAccountPage(tk.Frame):
         controller.show_frame(LoginPage)
 
     def show_curator_request(self):
-        print('success')
         page = self.controller.get_page(CuratorRequestPage)
         page.sql_request()
         self.controller.show_frame(CuratorRequestPage)
@@ -1177,7 +1181,7 @@ class ViewAllMuseumReviewsPage(tk.Frame):
 
         back_button = tk.Button(self, borderwidth=0, text="Back", fg='blue',
                                 command=lambda: self.choose_view_museum())
-        back_button.pack(pady=0, anchor='n')
+        back_button.pack(padx=50, pady=20, anchor='w')
 
         black_line=Frame(self, height=1, width=500, bg="black")
         black_line.pack(anchor='n', pady=20)
@@ -1232,7 +1236,7 @@ class SearchForMuseumPage(tk.Frame):
         museum_select_frame = tk.Frame(self, borderwidth=5, relief='groove')
         museum_select_frame.pack(anchor='center', pady=20, padx=20, ipadx=20)
         self.museum_select_frame = museum_select_frame
-        
+
 
         museums = StringVar()
         museums.set('Picasso Museum') # set the default option
@@ -1255,7 +1259,7 @@ class SearchForMuseumPage(tk.Frame):
         popupMenu = tk.OptionMenu(museum_select_frame, museums, *museum_names)
         pickAMuseum.grid(row=0, column=0, sticky='e', pady=5, padx=5)
         popupMenu.grid(row=0, column=1, sticky='w', pady=5, padx=5)
-        
+
         self.popupMenu = popupMenu
         self.update_museum_list()
 
@@ -1273,7 +1277,7 @@ class SearchForMuseumPage(tk.Frame):
         my_reviews_button.pack(pady=5, anchor='n')
         manage_account_button.pack(pady=5, anchor='n')
         black_line=Frame(self, height=1, width=500, bg="black")
-        black_line.pack(anchor='n', pady=20)
+        black_line.pack(pady=20, anchor='n')
 
         def show_ticket_page():
             self.controller.get_page(TicketHistoryPage).populateTable(self.user)
@@ -1302,14 +1306,13 @@ class SearchForMuseumPage(tk.Frame):
             i += 1
         self.museums = StringVar()
         self.museums.set(museum_names[0]) # set the default option
-        print("HEREEEE") #todo delete
-        print(museum_names) #todo - delete
+
         if self.popupMenu != None:
             self.popupMenu.destroy()
         self.popupMenu = tk.OptionMenu(self.museum_select_frame, self.museums, *museum_names)
         self.popupMenu.grid(row=0, column=1, sticky='w', pady=5, padx=5)
         cursor.close()
-        
+
         # on change dropdown value
         def change_dropdown(*args):
             controller = self.controller
@@ -1381,7 +1384,7 @@ class CuratorRequestPage(tk.Frame):
 
 
         create_request_button.pack(pady=20, anchor='n')
-        back_button.pack(pady=5, anchor='n')
+        back_button.pack(padx=50, pady=20, anchor='w')
 
         black_line=Frame(self, height=1, width=500, bg="black")
         black_line.pack(anchor='n', pady=20)
@@ -1400,8 +1403,10 @@ class CuratorRequestPage(tk.Frame):
 
 
         cursor.close()
-
+        if self.popupMenu != None:
+            self.popupMenu.destroy()
         self.popupMenu = tk.OptionMenu(self.museum_select_frame, self.museums, *museum_names)
+        self.popupMenu.grid(row=0, column=1, sticky='w', pady=5, padx=5)
         print ('success')
 
 
@@ -1459,12 +1464,14 @@ class MyMuseumsPage(tk.Frame):
         self.tree.heading('numExhibits', text='Exhibit Count')
         self.tree.heading('rating', text='Rating')
         self.tree.pack()
-        
+
         select_button = tk.Button(self, text="Select", fg='blue', command=lambda: self.select_press(self.tree, controller))
         select_button.pack(pady=5, anchor='n')
         back_button = tk.Button(self, text="Back", fg='blue',
                                 command=lambda: controller.show_frame(CuratorSearchForMuseumPage))
-        back_button.pack(pady=5, anchor='n')
+        back_button.pack(padx=50, pady=20, anchor='w')
+        black_line=Frame(self, height=1, width=500, bg="black")
+        black_line.pack(pady=20, anchor='n')
 
     def sql_query(self, username):
 
@@ -1474,7 +1481,6 @@ class MyMuseumsPage(tk.Frame):
 
         cursor = cnx.cursor()
 
-        # todo - exhibit count
         query = ("SELECT museum_name, COUNT(*), AVG(rating) FROM museum "
                  "NATURAL LEFT OUTER JOIN review "
                  "NATURAL LEFT OUTER JOIN exhibit "
@@ -1553,7 +1559,7 @@ class NewExhibitPage(tk.Frame):
                                 command=lambda: controller.show_frame(CuratorSearchForMuseumPage))
 
         submit_exhibit_button.pack(anchor='n', expand=True)
-        back_button.pack(pady=0, anchor='n')
+        back_button.pack(padx=50, pady=20, anchor='w')
         black_line=Frame(self, height=1, width=500, bg="black")
         black_line.pack(anchor='n')
 
@@ -1566,7 +1572,7 @@ class NewExhibitPage(tk.Frame):
 
         query = ("INSERT INTO exhibit "
                  "VALUES (%s, %s, %s, %s);")
-                 
+
         values = (self.museum, exhibit.get(), year.get(), url.get())
         try:
             cursor.execute(query, values)
@@ -1605,7 +1611,7 @@ class AdminHomePage(tk.Frame):
         delete_museum_button.pack(pady=5, anchor='n')
         log_out_button.pack(pady=5, anchor='n')
         black_line=Frame(self, height=1, width=500, bg="black")
-        black_line.pack(pady=20, anchor='s')
+        black_line.pack(pady=20, anchor='n')
 
     def show_requests_page(self):
         self.controller.get_page(AdminCuratorRequestsPage).populateTable()
@@ -1653,7 +1659,6 @@ class AdminCuratorRequestsPage(tk.Frame):
         self.tree.heading('museum', text='Visitor')
         self.tree.pack()
         self.populateTable()
-        # todo - email & museum from selected block
         approve_button = tk.Button(self, text="Approve", fg='blue',
                                    command=lambda: self.accept_request())
         reject_button = tk.Button(self, text="Reject", fg='blue',
@@ -1663,7 +1668,7 @@ class AdminCuratorRequestsPage(tk.Frame):
 
         approve_button.pack(pady=5, anchor='n')
         reject_button.pack(pady=5, anchor='n')
-        back_button.pack(pady=5, anchor='n')
+        back_button.pack(padx=50, pady=20, anchor='w')
         black_line=Frame(self, height=1, width=500, bg="black")
         black_line.pack(pady=20, anchor='s')
 
@@ -1776,9 +1781,9 @@ class DeleteMuseumFormPage(tk.Frame):
 
 
         delete_museum_button.pack(pady=20, anchor='n')
-        back_button.pack(pady=5, anchor='n')
+        back_button.pack(padx=50, pady=20, anchor='w')
         black_line=Frame(self, height=1, width=500, bg="black")
-        black_line.pack(pady=20, anchor='s')
+        black_line.pack(pady=20, anchor='n')
 
     def delete_museum(self):
         cursor = cnx.cursor()
@@ -1859,9 +1864,9 @@ class NewMuseumPage(tk.Frame):
                                 command=lambda: controller.show_frame(AdminHomePage))
 
         submit_museum_button.pack(anchor='n', expand=True)
-        back_button.pack(pady=20, anchor='n')
+        back_button.pack(padx=50, pady=20, anchor='w')
         black_line=Frame(self, height=1, width=500, bg="black")
-        black_line.pack(anchor='n')
+        black_line.pack(pady=20, anchor='n')
 
 
 
