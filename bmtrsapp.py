@@ -1179,7 +1179,7 @@ class ViewAllMuseumReviewsPage(tk.Frame):
         tree.heading('rating', text='Rating')
         tree.pack()
 
-        back_button = tk.Button(self, borderwidth=0, text="Back", fg='blue',
+        back_button = tk.Button(self, text="Back", fg='blue',
                                 command=lambda: self.choose_view_museum())
         back_button.pack(padx=50, pady=20, anchor='w')
 
