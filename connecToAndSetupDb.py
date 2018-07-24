@@ -54,7 +54,7 @@ TABLES['museum'] = (
     "`ticket_price` VARCHAR(140) NULL,"
     "PRIMARY KEY (`museum_name`),"
     "CONSTRAINT `FK_email` FOREIGN KEY (`curator_email`)"
-    "REFERENCES `visitor` (`email`) ON DELETE CASCADE"
+    "REFERENCES `visitor` (`email`) ON DELETE SET NULL"
     ") ENGINE=InnoDB;")
 
 TABLES['admin_user'] = (
