@@ -1876,8 +1876,6 @@ class NewMuseumPage(tk.Frame):
 
         visitor_page = self.controller.get_page(SearchForMuseumPage)
 
-        print('user: ' + self.controller.get_page(LoginPage).user)
-        print(self.controller)
 
         cursor = cnx.cursor()
         if museum.get() is '':
@@ -1892,6 +1890,10 @@ class NewMuseumPage(tk.Frame):
             return
         cnx.commit()
         if price is not None:
+            if not price.get().isdigit():
+                messagebox.showerror("Error", "Ticket price must be a number")
+                return
+
             q = ("UPDATE museum "
                  "SET ticket_price = '{price}' "
                  "WHERE museum_name = '{museum}';".format(price=price.get(), museum=museum.get()))
