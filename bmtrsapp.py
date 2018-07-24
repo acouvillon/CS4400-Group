@@ -104,11 +104,11 @@ class LoginPage(tk.Frame):
 
         cursor = cnx.cursor()
         q = ("SELECT COUNT(*) FROM visitor "
-                "WHERE email = '{username}';").format(username=username.get())
+             "WHERE email = '{username}';").format(username=username.get())
         cursor.execute(q)
         c = cursor.fetchone()[0]
         qu = ("SELECT COUNT(*) FROM admin_user "
-             "WHERE email = '{username}';").format(username=username.get())
+              "WHERE email = '{username}';").format(username=username.get())
         cursor.execute(qu)
         admin_count = cursor.fetchone()[0]
         if c == 0 and admin_count == 0:
@@ -918,7 +918,7 @@ class CuratorViewSpecificMuseumPage(tk.Frame):
                 next_page.comment.insert(END, comment)
                 next_page.rating.set(rating)
             cursor.close()
-        
+
         else:
             cursor.close()
 
@@ -1001,13 +1001,13 @@ class ManageAccountPage(tk.Frame):
             textbox.delete(0,END)
 
         controller.show_frame(LoginPage)
-        
+
     def show_curator_request(self):
         print('success')
         page = self.controller.get_page(CuratorRequestPage)
         page.sql_request()
         self.controller.show_frame(CuratorRequestPage)
-        
+
 
     def delete_account(self, controller):
         user = controller.get_page(LoginPage).user
@@ -1183,7 +1183,7 @@ class ViewAllMuseumReviewsPage(tk.Frame):
 
 class SearchForMuseumPage(tk.Frame):
 
-    
+
 
     user = ''
 
@@ -1196,6 +1196,7 @@ class SearchForMuseumPage(tk.Frame):
         black_line.pack()
         museum_select_frame = tk.Frame(self, borderwidth=5, relief='groove')
         museum_select_frame.pack(anchor='center', pady=20, padx=20, ipadx=20)
+        self.museum_select_frame = museum_select_frame
 
         museums = StringVar()
         museums.set('Picasso Museum') # set the default option
@@ -1261,7 +1262,7 @@ class SearchForMuseumPage(tk.Frame):
             self.controller.get_page(ViewMuseumsPage).sql_query()
             self.controller.show_frame(ViewMuseumsPage)
     def update_museum_list(self):
-    
+
         print("Called")
 
         query = ("SELECT museum_name FROM museum "
@@ -1341,7 +1342,7 @@ class CuratorRequestPage(tk.Frame):
 
         black_line=Frame(self, height=1, width=500, bg="black")
         black_line.pack(anchor='n', pady=20)
-        
+
     def sql_request(self):
         query = ("SELECT museum_name FROM museum "
                  "ORDER BY museum_name")
@@ -1356,10 +1357,10 @@ class CuratorRequestPage(tk.Frame):
 
 
         cursor.close()
-        
+
         self.popupMenu = tk.OptionMenu(self.museum_select_frame, self.museums, *museum_names)
         print ('success')
-        
+
 
     def set_museum_name(self, museum_name):
         self.chosen_museum = museum_name
@@ -1507,7 +1508,7 @@ class NewExhibitPage(tk.Frame):
 
         query = ("INSERT INTO exhibit "
                  "VALUES ('{museum}', '{exhibit}', '{year}', '{url}' );").format(museum=self.museum, exhibit=exhibit.get(),
-                                                                                  year=year.get(), url=url.get())
+                                                                                 year=year.get(), url=url.get())
         try:
             cursor.execute(query)
             cnx.commit()
@@ -1536,7 +1537,7 @@ class AdminHomePage(tk.Frame):
         add_museum_button = tk.Button(self, text="Add Museum", fg='blue',
                                       command=lambda: controller.show_frame(NewMuseumPage))
         delete_museum_button = tk.Button(self, text="Delete Museum", fg='blue',
-                                         command=lambda: controller.show_frame(DeleteMuseumFormPage))
+                                         command=lambda: self.update_delete_page())
         log_out_button = tk.Button(self, text="Log Out", fg='blue',
                                    command=lambda: self.logout(controller))
 
@@ -1554,13 +1555,17 @@ class AdminHomePage(tk.Frame):
     def logout(self, controller):
         login_page = controller.get_page(LoginPage)
         textboxes = login_page.textboxes
-
         textboxes[0].focus_set()
 
         for textbox in textboxes:
             textbox.delete(0,END)
 
         controller.show_frame(LoginPage)
+
+    def update_delete_page(self):
+        self.controller.get_page(DeleteMuseumFormPage).update_museum_list()
+        self.controller.show_frame(DeleteMuseumFormPage)
+
 
 class AdminCuratorRequestsPage(tk.Frame):
 
@@ -1626,8 +1631,8 @@ class AdminCuratorRequestsPage(tk.Frame):
         cur = cursor.fetchone()[0]
         if cur is not None:
             result = messagebox.askquestion("Accept Curator Request", "{email} is currently the curator for the {museum}. Accepting {new}\'s "
-                                              "request will make {new} the new curator of {museum}. \n\n "
-                                              "Do you wish to proceed?".format(email=cur, museum=self.museum, new=self.curator_email))
+                                                                      "request will make {new} the new curator of {museum}. \n\n "
+                                                                      "Do you wish to proceed?".format(email=cur, museum=self.museum, new=self.curator_email))
 
         if cur is None or result == 'yes':
             print("yo")
@@ -1671,7 +1676,7 @@ class AdminCuratorRequestsPage(tk.Frame):
         cursor = cnx.cursor()
 
         query = ("SELECT museum_name, email "
-                    "FROM curator_request;")
+                 "FROM curator_request;")
         cursor.execute(query)
 
         for (museum_name, email) in cursor:
@@ -1697,10 +1702,12 @@ class DeleteMuseumFormPage(tk.Frame):
         self.museum_select_frame = tk.Frame(self, borderwidth=5, relief='groove')
         self.museum_select_frame.pack(anchor='center', pady=20, padx=20, ipadx=20)
         self.controller = controller
-
+        museum_names = []
         pickAMuseum = tk.Label(self.museum_select_frame, text="Pick a Museum: ")
         pickAMuseum.grid(row=0, column=0, sticky='e', pady=5, padx=5)
-
+        self.museums = StringVar()
+        self.popupMenu = tk.OptionMenu(self.museum_select_frame, self.museums, *museum_names)
+        self.popupMenu.grid(row=0, column=1, sticky='w', pady=5, padx=5)
         self.update_museum_list()
 
         delete_museum_button = tk.Button(self, text="Delete Museum", fg='blue',
@@ -1745,7 +1752,7 @@ class DeleteMuseumFormPage(tk.Frame):
         self.museums = StringVar()
         self.museums.set(museum_names[0]) # set the default option
         self.popupMenu = tk.OptionMenu(self.museum_select_frame, self.museums, *museum_names)
-        self.popupMenu.grid(row=0, column=1, sticky='w', pady=5, padx=5)
+        #self.popupMenu.grid(row=0, column=1, sticky='w', pady=5, padx=5)
         cursor.close()
 
         # on change dropdown value
@@ -1793,15 +1800,15 @@ class NewMuseumPage(tk.Frame):
         back_button.pack(pady=20, anchor='n')
         black_line=Frame(self, height=1, width=500, bg="black")
         black_line.pack(anchor='n')
-        
-        
+
+
 
 
 
     def create_new_museum(self, museum, price):
-        
+
         visitor_page = self.controller.get_page(SearchForMuseumPage)
-    
+
         print('user: ' + self.controller.get_page(LoginPage).user)
         print(self.controller)
 
